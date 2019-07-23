@@ -32,6 +32,12 @@ class NES{
             return PRG_ROM[address];
         }
     }
+    short readLittleEndian(unsigned short address){
+        short data = 0;
+        data = readAddress(address+1);
+        data = (data)<<4;
+        data = data | readAddress(address);
+    }
     void readFile(char* path){
         iNES_Header header;
         FILE* rom = fopen(path, "r");
@@ -47,26 +53,115 @@ class NES{
             fread(&PRG_ROM[0x4000], 0x4000, 1, rom);
         }
     }
+    void processInstruction(char instruction){
+        
+        if(instruction&0x01){
+            char data = 0;
+            short address;
+            /* Check addressing modes */
+            switch(instruction&0x1E0){
+                case 0x0: {
+                    PC = PC + 1;
+                    address = readLittleEndian(PC+X);
+                    PC = PC + 1;
+                    data = readAddress(address);
+                    break;
+                } 
+                case 0x1: {
+                    PC = PC + 1;
+                    data = readAddress(PC);
+                    data = readAddress(data);
+                    break;
+                }
+                case 0x2:{
+                    PC = PC + 1;
+                    data = readAddress(PC);
+                    break;
+                }
+                case 0x3: {
+                    short address;
+                    PC = PC + 1;
+                    address = readLittleEndian(PC);
+                    PC = PC + 1;
+                    data = readAddress(address);
+                    break;
+                }
+                case 0x4: {
+                    PC = PC + 1;
+                    short address = readLittleEndian(PC);
+                    PC = PC + 1;
+                    data = readAddress(address+Y);
+                    break;
+                }
+                case 0x5: {
+                    PC = PC + 1;
+                    data = readAddress(PC+X);
+                }
+                case 0x6: { 
+                    PC = PC + 1;
+                    short int address;
+                    address = readLittleEndian(PC);
+                    PC = PC + 1;
+                    data = readAddress(address+X);
+                    break;
+                }
+                case 0x7: {
+                    short int address;
+                    PC = PC + 1;
+                    address = readLittleEndian(PC);
+                    PC = PC + 1;
+                    data = readAddress(address+Y);
+                    break;
+                }
+            }
+
+            switch(instruction&0xE0){
+                case 0x0: ORA(data); break;
+                case 0x1: AND(data); break;
+                case 0x2: EOR(data); break; 
+                case 0x3: ADC(data); break;
+                case 0x4: STA(address); PC = PC -1; break;  
+                case 0x5: LDA(data); break;
+                case 0x6: CMP(data); break;
+                case 0x7: SBC(data); break;
+            }
+        }
+        
+    }
     void cycle(){
         char instruction = readAddress(PC);
-        
+        processInstruction(instruction);
         PC = PC + 1;
     }
-    void ORA(unsigned short address){
-        A = A | memory[address];
+    void ORA(char data){
+        A|=data;
     }
 
-    void AND(unsigned short address){
-        A = A & memory[address];
+    void AND(char data){
+        A&=data;
     }
-    void EOR(unsigned short address){
-        A = A ^ memory[address];
+    void EOR(char data){
+        A^=data;
     }
-    void ADC(unsigned short address){
-        A = A + memory[address];
+    void ADC(char data){
+        if(A+data>0xFF){
+            
+        }
+        
+
+        A+=data;
     }
-    void SBC(unsigned short address){
-        A = A - memory[address];
+    void SBC(char data){
+        A-=data;
+    }
+    void STA(short int address){
+        memory[address] = A; // check this
+    }
+    void LDA(char data){
+        A = data;
+    }
+    void CMP(char data){
+        // Update flags based on CMP
     }
 };
 
