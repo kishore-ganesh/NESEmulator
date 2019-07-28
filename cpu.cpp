@@ -1,4 +1,6 @@
 #include<stdio.h>
+#include<iostream>
+using namespace std;
 /* RUN SET FLAGS AFTER RUNNING INSTRUCTION */
 /*We should handle addresses automaitcally or not? */
 //Check write addresses
@@ -39,8 +41,18 @@ class NES{
             return memory[address%(0x0800)];
         }
         else if(address>=0x8000&&address<=0xFFFF){
-            return PRG_ROM[address];
+            return PRG_ROM[address-0x8000];
         }
+    }
+
+    void writeAddress(unsigned short address, char value){
+        if(address <= 0x1FFF){
+            memory[address%0x800] = value;
+        }
+        else if(address>=0x8000&& address<=0xFFFF){
+            PRG_ROM[address-0x8000] = value;
+        }
+
     }
     short readLittleEndian(unsigned short address){
         short data = 0;
@@ -69,6 +81,10 @@ class NES{
         if(bit){
             P|=mask;
         }
+    }
+
+    bool getFlag(char mask){
+        return P&mask > 0;
     }
 
     void checkValueFlags(char value){
@@ -209,14 +225,14 @@ class NES{
                 }
             }
             switch(instruction&0xE0){
-                case 0x0: ASL(address, accumulator); break;
-                case 0x1: ROL(address, accumulator); break;
-                case 0x2: LSR(address, accumulator); break; 
-                case 0x3: ROR(address, accumulator); break;
-                case 0x4: STX(address, accumulator); break;
+                case 0x0: ASL(data, address, accumulator); break;
+                case 0x1: ROL(data, address, accumulator); break;
+                case 0x2: LSR(data, address, accumulator); break; 
+                case 0x3: ROR(data, address, accumulator); break;
+                case 0x4: STX(data, address, accumulator); break;
                 case 0x5: LDX(data); break;
-                case 0x6: DEC(address, accumulator); break;
-                case 0x7: INC(address, accumulator); break;
+                case 0x6: DEC(data, address, accumulator); break;
+                case 0x7: INC(data, address, accumulator); break;
             }
         }
         
@@ -227,19 +243,23 @@ class NES{
         PC = PC + 1;
     }
     void ORA(char data){
+        cout << "ORA" << endl;
         A|=data;
         checkValueFlags(A);
     }
 
     void AND(char data){
+        cout << "AND" << endl;
         A&=data;
         checkValueFlags(A);
     }
     void EOR(char data){
+        cout << "EOR" << endl;
         A^=data;
         checkValueFlags(A);
     }
     void ADC(char data){
+        cout<< "ADC" << endl;
         bool carryBit = A + data > 0xFF ? 1 : 0;
         bool overFlowBit = (A + data > 0x7F || A + data < 0x80);
         setFlag(CARRY, carryBit);
@@ -248,6 +268,7 @@ class NES{
         setFlag(OVERFLOW, overFlowBit);
     }
     void SBC(char data){
+        cout << "SBC" <<endl;
         bool overFlowBit = (A - data > 0x7F || A - data < 0x80);
         bool borrowBit = A >= data ? 1: 0;
         A-=data;
@@ -256,46 +277,122 @@ class NES{
         setFlag(CARRY, borrowBit);
     }
     void STA(short int address){
+        cout << "STA" <<endl;
         memory[address] = A; // check this
     }
     void LDA(char data){
+        cout << "LDA" <<endl;
         A = data; //check if flag is to be set here
+        checkValueFlags(A);
     }
     void CMP(char data){
+        cout << "CMP" << endl;
         bool borrowBit = A >= data ? 1: 0;
         setFlag(CARRY, borrowBit);
         checkValueFlags(A - data);
         // Update flags based on CMP
     }
 
-    void ASL(unsigned short address, bool accumulator){
-
+    void ASL(char data, unsigned short address, bool accumulator){
+        bool carryBit = 0;
+        if(accumulator){
+            carryBit = A & 0x8F;
+            A = A << 1;
+            checkValueFlags(A);
+            
+        }
+        else{
+            carryBit = data & 0x8F;
+            writeAddress(address, data << 1);
+            checkValueFlags(data);
+        }
+        setFlag(CARRY, carryBit);
+        cout << "ASL" <<endl;
     }
-    void ROL(unsigned short address, bool accumulator){
-        
+    void ROL(char data, unsigned short address, bool accumulator){
+        bool zeroBit = getFlag(CARRY);
+        bool carryBit = 0;
+        if(accumulator){
+            carryBit = A & 0x8F;
+            A  = A << 1;
+            A &= 0xFE;
+            A |= zeroBit ? 0x01: 0;
+            checkValueFlags(A);
+        }
+        else{
+            carryBit = data & 0x8F;
+            data = data << 1;
+            data&= 0xFE;
+            data|= zeroBit ? 0x1: 0;
+            writeAddress(address, data);
+            checkValueFlags(data);
+        }
+        setFlag(CARRY, carryBit);
+        cout << "ROL" << endl;
     }
-    void LSR(unsigned short address, bool accumulator){
-        
+    void LSR(char data, unsigned short address, bool accumulator){
+        bool nextCarryBit = 0;
+        if(accumulator){
+            nextCarryBit = A & 0x01;
+            A = A >> 1;
+            checkValueFlags(A);
+        }
+        else{
+            nextCarryBit = data & 0x01;
+            data = data >> 1;
+            writeAddress(address, data);
+            checkValueFlags(data);
+        }
+        setFlag(CARRY, nextCarryBit);
+        cout << "LSR" << endl;
     }
-    void ROR(unsigned short address, bool accumulator){
-        
+    void ROR(char data, unsigned short address, bool accumulator){
+        bool previousCarryBit = getFlag(CARRY);
+        bool nextCarryBit = 0;
+        if(accumulator){
+            nextCarryBit = A & 0x01;
+            A = A >> 1;
+            A &= 0x7F;
+            A |= previousCarryBit ? 0x80 : 0;
+            checkValueFlags(A);
+        }
+        else{
+            nextCarryBit = data & 0x01;
+            data = data >> 1;
+            data &= 0x7F;
+            data |= previousCarryBit ? 0x80 : 0;
+            writeAddress(address, data);
+            checkValueFlags(data);
+        }
+        setFlag(CARRY, nextCarryBit);
+        cout << "ROR" << endl;
     }
-    void STX(unsigned short address, bool accumulator){
-        
+    void STX(char data, unsigned short address, bool accumulator){
+        writeAddress(address, X);
+        cout << "STX" << endl; //check if flag is set here
     }
 
     void LDX(char data){
+        cout<< "LDX" <<endl;
         X = data; //check if flag to be set here
+        checkValueFlags(X);
     }
-    void DEC(unsigned short address, bool accumulator){
-        
+    void DEC(char data, unsigned short address, bool accumulator){
+        writeAddress(address, data - 1);
+        checkValueFlags(data -1);
+        cout << "DEC" <<endl;
     }
-    void INC(unsigned short address, bool accumulator){
-        
+    void INC(char data, unsigned short address, bool accumulator){
+        writeAddress(address, data + 1);
+        checkValueFlags(data + 1);
+        cout << "INC" << endl;
     }
 };
 
 int main(int argc, char* argv[]){
     NES nes;
     nes.readFile(argv[1]);
+    while(true){
+        nes.cycle();
+    }
 }
