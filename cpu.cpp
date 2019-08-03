@@ -120,6 +120,12 @@ class NES{
         
         char data = 0;
         unsigned short address;
+        char aaa = (instruction & 0xE0)>>5;
+        char bbb = (instruction & 0x1C) >> 2;
+        char cc = (instruction & 0x03);
+        /*
+        Several instructions have patterns
+         */
         //check specific instructions here then pattern matching
         switch(instruction){
             case 0x00: BRK(); return;
@@ -161,9 +167,9 @@ class NES{
                 case 0x3: BRANCH(ZERO, bit, data); break;
             }
         }
-        else if(instruction&0x01){
+        else if(cc==0x01){
             /* Check addressing modes */
-            switch(instruction&0x1C){
+            switch(bbb){
                 case 0x0: {
                     PC = PC + 1;
                     address = readLittleEndian(PC+X);
@@ -203,7 +209,7 @@ class NES{
                 }
             }
 
-            switch(instruction&0xE0){
+            switch(aaa){
                 case 0x0: ORA(data); break;
                 case 0x1: AND(data); break;
                 case 0x2: EOR(data); break; 
@@ -214,9 +220,9 @@ class NES{
                 case 0x7: SBC(data); break;
             }
         }
-        else if(instruction&0x02 || instruction&0x03==0){
+        else if(cc==0x02 || cc==0x03){
             bool accumulator = false;
-            switch(instruction&0x1C){ // check this mask
+            switch(bbb){ // check this mask
                 case 0x0: {
                     readImmediate(PC, data, address);
                     break;
@@ -253,8 +259,8 @@ class NES{
                     break;
                 }
             }
-            if(instruction & 0x02){
-                switch(instruction&0xE0){
+            if(cc==2){
+                switch(aaa){
                     case 0x0: ASL(data, address, accumulator); break;
                     case 0x1: ROL(data, address, accumulator); break;
                     case 0x2: LSR(data, address, accumulator); break; 
@@ -266,7 +272,7 @@ class NES{
                     }                
             }
             else{
-                switch(instruction & 0xE0){
+                switch(aaa){
                     case 0x1: BIT(data); break;  //BIT 
                     case 0x2: JMP(address); break; //JMP
                     case 0x3: JMP_ABS(address); break; //JMP ABS
@@ -287,14 +293,14 @@ class NES{
             push(PC);
             push(P);
             setFlag(INT, 1);
-            address = (readAddress(0xFFFB) << 8 )| readAddress(0xFFFA);
+            address = readLittleEndian(0xFFFA);
             PC = address;
         }
-        else if(IRQ&&!getFlag(INT)){
+        else if(!IRQ&&!getFlag(INT)){
             push(PC);
             push(P);
             setFlag(INT, 1);
-            address = (readAddress(0xFFFF) << 8 )| readAddress(0xFFFE);
+            address = readLittleEndian(0xFFFE);
             PC = address; 
         }
         char instruction = readAddress(PC);
@@ -678,3 +684,4 @@ int main(int argc, char* argv[]){
 //What happens on reset and what happens every cycle
 //Check JUMP on edge or what?
 //Check reset
+//Do CPU and PPU cycle together? Can the CPU and the PPU both do something in the same cycle
