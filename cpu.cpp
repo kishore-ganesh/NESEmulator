@@ -25,7 +25,8 @@ class NES{
      */
     unsigned short PC;
     char memory[2*1024];
-    
+    bool IRQ, NMI;
+    bool previousNMILevel;
     unsigned char display [256][240]; //take care of x and y
     public: 
     NES(char* path){
@@ -33,6 +34,9 @@ class NES{
         P = 0x34;
         SP = 0;
         cartridge = new Cartridge(path);
+        IRQ = true;
+        NMI = true;
+        previousNMILevel = true;
     }
     char readAddress(unsigned short address){
         if(address<=0x1FFF){
@@ -112,7 +116,7 @@ class NES{
         PC = PC + 1;
         data = readAddress(address);
     }
-    void processInstruction(char instruction){
+    void processInstruction(unsigned char instruction){
         
         char data = 0;
         unsigned short address;
@@ -277,6 +281,22 @@ class NES{
         
     }
     void cycle(){
+        short address;
+        if(!NMI&&previousNMILevel){
+            previousNMILevel = true;
+            push(PC);
+            push(P);
+            setFlag(INT, 1);
+            address = (readAddress(0xFFFB) << 8 )| readAddress(0xFFFA);
+            PC = address;
+        }
+        else if(IRQ&&!getFlag(INT)){
+            push(PC);
+            push(P);
+            setFlag(INT, 1);
+            address = (readAddress(0xFFFF) << 8 )| readAddress(0xFFFE);
+            PC = address; 
+        }
         char instruction = readAddress(PC);
         processInstruction(instruction);
         PC = PC + 1; //check for jump
@@ -429,6 +449,7 @@ class NES{
 
     void BIT(char data){
         // Check for immediate instruction
+        cout << "BIT" << endl;
         bool zeroBit, overflowBit, negativeBit;
         zeroBit = data & A > 0 ? 1 : 0;
         negativeBit = data & 0x80;
@@ -439,6 +460,7 @@ class NES{
     }
 
     void JMP(unsigned short address){
+        cout << "JMP" << endl;
         if(!address&0xFF){
             PC = readLittleEndian(address);
         }
@@ -450,33 +472,39 @@ class NES{
     }
 
     void JMP_ABS(unsigned short address){
+        cout << "JMP_ABS" << endl;
         PC = address;
 
         //check for page boundaries
     }
 
     void STY(unsigned short address){
+        cout << "STY" << endl;
         writeAddress(address, Y);
     }
     
     void LDY(char data){
+        cout << "LDY" << endl;
         Y = data;
         checkValueFlags(data);
     }
 
     void CPY(char data){
+        cout << "CPY" << endl;
         bool borrowBit = Y >= data ? 1: 0;
         setFlag(CARRY, borrowBit);
         checkValueFlags(Y - data);
 
     }
     void CPX(char data){
+        cout << "CPX" << endl;
         bool borrowBit = X >= data ? 1: 0;
         setFlag(CARRY, borrowBit);
         checkValueFlags(X - data);
     }
 
     void BRANCH(masks flag, bool bit, char data){
+        cout << "BRANCH" << endl;
         if(getFlag(flag)==bit){
             PC = PC + data - 1 ; //chedck this
         }
@@ -495,12 +523,15 @@ class NES{
     }
 
     void BRK(){
+        cout << "BRK" << endl;
         setFlag(INT, 1);
+        IRQ = false;
         push(PC+2);
         push(P);
     }
 
     void JSR(){
+        cout << "JSR" << endl;
         push(PC+2);
         PC = PC + 1;
         short address = readLittleEndian(PC);
@@ -510,106 +541,130 @@ class NES{
     }
 
     void RTI(){
+        cout << "RTI" << endl;
         P = pop();
         PC = pop();
+        IRQ = true;
+        NMI = true;
+        previousNMILevel = true; //check this
     }
 
     void RTS(){
+        cout << "RTS" << endl;
         PC = pop();
         PC = PC + 1;
     }    
 
     void PHP(){
+        cout << "PHP" << endl;
         push(P);
     }
 
     void PLP(){
+        cout << "PLP" << endl;
         P = pop();
     }
 
     void PHA(){
+        cout << "PHA" << endl;
         push(A);
     }
 
     void PLA(){
+        cout << "PLA" << endl;
         A = pop();
     }
 
     void DEY(){
+        cout << "DEY" << endl;
         Y = Y - 1;
         checkValueFlags(Y);
     }
 
     void TAY(){
+        cout << "TAY" << endl;
         Y = A;
         checkValueFlags(Y);
     }
 
     void INY(){
+        cout << "INY" << endl;
         Y = Y + 1;
         checkValueFlags(Y);
     }
 
     void INX(){
+        cout << "INX" << endl;
         X = X + 1;
         checkValueFlags(X);
     }
 
     void CLC(){
+        cout << "CLC" << endl;
         setFlag(CARRY, 0);
     }
     void SEC(){
+        cout << "SEC" << endl;
         setFlag(CARRY, 1);
     }
     void CLI(){
+        cout << "CLI" << endl;
         setFlag(INT, 0);
     }
 
     void SEI(){
+        cout << "SEI" << endl;
         setFlag(INT, 1);
     }
 
     void TYA(){
+        cout << "TYA" << endl;
         A = Y;
         checkValueFlags(A);
     }   
 
     void CLV(){
+        cout << "CLV" << endl;
         setFlag(OVERFLOW, 0);
     }
 
     void CLD(){
-        
+        cout << "CLD" << endl;
     }
 
     
     void SED(){
-
+        cout << "SED" << endl;
     }
 
     void TXA(){
+        cout << "TXA" << endl;
         A = X;
         checkValueFlags(A);
     }
 
     void TXS(){
+        cout << "TXS" << endl;
         SP = X;
     }
 
     void TAX(){
+        cout << "TAX" << endl;
         X = A;
     }
 
     void TSX(){
+        cout << "TSX" << endl;
         X = SP;
     }
 
     void DEX(){
+        cout << "DEX" << endl;
         X = X - 1;
     }
 
     void NOP(){
-
+       cout << "NOP" << endl; 
     }
 };
 
@@ -622,3 +677,4 @@ int main(int argc, char* argv[]){
 
 //What happens on reset and what happens every cycle
 //Check JUMP on edge or what?
+//Check reset
