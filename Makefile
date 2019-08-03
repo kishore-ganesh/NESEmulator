@@ -1,3 +1,3 @@
 nesemulator: 
-	g++ cpu.cpp -o cpu -g
+	g++ cpu.cpp cartridge.cpp -o cpu -g
 	

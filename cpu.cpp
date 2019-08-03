@@ -4,15 +4,10 @@ using namespace std;
 /* RUN SET FLAGS AFTER RUNNING INSTRUCTION */
 /*We should handle addresses automaitcally or not? */
 //Check write addresses
-struct iNES_Header{
-    char NESConstant[4];
-    char prgSize;
-    char chrSize;
-    char flag[5];
-    char zero[4];
-};
+#include "cartridge.h"
 class NES{
-    char A, X, Y, P, SP; //check this
+    char A, X, Y, P, SP; //check check setting of stack pointer
+    Cartridge* cartridge;
     enum masks{
         CARRY = 0x01,
         ZERO = 0x02,
@@ -29,19 +24,21 @@ class NES{
      */
     unsigned short PC;
     char memory[2*1024];
-    char PRG_ROM[32768];
+    
     unsigned char display [256][240]; //take care of x and y
     public: 
-    NES(){
+    NES(char* path){
         PC = 0x8000;
         P = 0x34;
+        cartridge = new Cartridge(path);
     }
     char readAddress(unsigned short address){
         if(address<=0x1FFF){
             return memory[address%(0x0800)];
         }
         else if(address>=0x8000&&address<=0xFFFF){
-            return PRG_ROM[address-0x8000];
+            short prgRomAddress = address - 0x8000;
+            return cartridge->read(prgRomAddress);
         }
     }
 
@@ -50,7 +47,8 @@ class NES{
             memory[address%0x800] = value;
         }
         else if(address>=0x8000&& address<=0xFFFF){
-            PRG_ROM[address-0x8000] = value;
+            short prgRomAddress = address - 0x8000;
+            cartridge->write(prgRomAddress, value);
         }
 
     }
@@ -59,21 +57,6 @@ class NES{
         data = readAddress(address+1);
         data = (data)<<4;
         data = data | readAddress(address);
-    }
-    void readFile(char* path){
-        iNES_Header header;
-        FILE* rom = fopen(path, "r");
-        fread(&header, sizeof(header), 1, rom);
-        if(header.flag[0]&0x0004){
-            fseek(rom, 512, SEEK_CUR); //check this
-        }
-        
-        long pos = ftell(rom);
-        fread(PRG_ROM, header.prgSize*0x4000, 1, rom);
-        if(header.prgSize==1){
-            fseek(rom, pos, SEEK_SET);
-            fread(&PRG_ROM[0x4000], 0x4000, 1, rom);
-        }
     }
 
     void setFlag(char mask, bool bit){
@@ -132,7 +115,18 @@ class NES{
         char data = 0;
         unsigned short address;
         //check specific instructions here then pattern matching
-        if(instruction&0x01){
+        if(instruction&0x1F==0x10){
+            PC = PC + 1;
+            data = readAddress(address);
+            bool bit = instruction & 0x20;
+            switch(instruction&0xC0){
+                case 0x0: BRANCH(NEGATIVE, bit, data); break;
+                case 0x1: BRANCH(OVERFLOW, bit, data); break;
+                case 0x2: BRANCH(CARRY, bit, data); break;
+                case 0x3: BRANCH(ZERO, bit, data); break;
+            }
+        }
+        else if(instruction&0x01){
             /* Check addressing modes */
             switch(instruction&0x1C){
                 case 0x0: {
@@ -185,7 +179,7 @@ class NES{
                 case 0x7: SBC(data); break;
             }
         }
-        else if(instruction&0x02){
+        else if(instruction&0x02 || instruction&0x03==0){
             bool accumulator = false;
             switch(instruction&0x1C){ // check this mask
                 case 0x0: {
@@ -224,23 +218,37 @@ class NES{
                     break;
                 }
             }
-            switch(instruction&0xE0){
-                case 0x0: ASL(data, address, accumulator); break;
-                case 0x1: ROL(data, address, accumulator); break;
-                case 0x2: LSR(data, address, accumulator); break; 
-                case 0x3: ROR(data, address, accumulator); break;
-                case 0x4: STX(data, address, accumulator); break;
-                case 0x5: LDX(data); break;
-                case 0x6: DEC(data, address, accumulator); break;
-                case 0x7: INC(data, address, accumulator); break;
+            if(instruction & 0x02){
+                switch(instruction&0xE0){
+                    case 0x0: ASL(data, address, accumulator); break;
+                    case 0x1: ROL(data, address, accumulator); break;
+                    case 0x2: LSR(data, address, accumulator); break; 
+                    case 0x3: ROR(data, address, accumulator); break;
+                    case 0x4: STX(data, address, accumulator); break;
+                    case 0x5: LDX(data); break;
+                    case 0x6: DEC(data, address, accumulator); break;
+                    case 0x7: INC(data, address, accumulator); break;
+                    }                
             }
+            else{
+                switch(instruction & 0xE0){
+                    case 0x1: break; //BIT 
+                    case 0x2: break; //JMP
+                    case 0x3: break; //JMP ABS
+                    case 0x4: break; //STY
+                    case 0x5: break; //LDY
+                    case 0x6: break; //CPY
+                    case 0x7: break; //CPX 
+                }
+            }
+
         }
         
     }
     void cycle(){
         char instruction = readAddress(PC);
         processInstruction(instruction);
-        PC = PC + 1;
+        PC = PC + 1; //check for jump
     }
     void ORA(char data){
         cout << "ORA" << endl;
@@ -387,11 +395,66 @@ class NES{
         checkValueFlags(data + 1);
         cout << "INC" << endl;
     }
+
+    void BIT(char data){
+        // Check for immediate instruction
+        bool zeroBit, overflowBit, negativeBit;
+        zeroBit = data & A > 0 ? 1 : 0;
+        negativeBit = data & 0x80;
+        overflowBit = data & 0x70;
+        setFlag(ZERO, data & A);
+        setFlag(OVERFLOW, overflowBit);
+        setFlag(NEGATIVE, negativeBit);
+    }
+
+    void JMP(unsigned short address){
+        if(!address&0xFF){
+            PC = readLittleEndian(address);
+        }
+        else{
+            short jumpTo = (readAddress(address&0xFF<<8) << 8) | (readAddress(address));
+            PC = jumpTo;
+        }
+        
+    }
+
+    void JMP_ABS(unsigned short address){
+        PC = address;
+
+        //check for page boundaries
+    }
+
+    void STY(unsigned short address){
+        writeAddress(address, Y);
+    }
+    
+    void LDY(char data){
+        Y = data;
+        checkValueFlags(data);
+    }
+
+    void CPY(char data){
+        bool borrowBit = Y >= data ? 1: 0;
+        setFlag(CARRY, borrowBit);
+        checkValueFlags(Y - data);
+
+    }
+    void CPX(char data){
+        bool borrowBit = X >= data ? 1: 0;
+        setFlag(CARRY, borrowBit);
+        checkValueFlags(X - data);
+    }
+
+    void BRANCH(masks flag, bool bit, char data){
+        if(getFlag(flag)==bit){
+            PC = PC + data - 1 ; //chedck this
+        }
+    }
+
 };
 
 int main(int argc, char* argv[]){
-    NES nes;
-    nes.readFile(argv[1]);
+    NES nes(argv[1]);
     while(true){
         nes.cycle();
     }
