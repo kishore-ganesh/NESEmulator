@@ -3,6 +3,7 @@
 using namespace std;
 /* RUN SET FLAGS AFTER RUNNING INSTRUCTION */
 /*We should handle addresses automaitcally or not? */
+/*Look at best practices and refactor */
 //Check write addresses
 #include "cartridge.h"
 class NES{
@@ -30,6 +31,7 @@ class NES{
     NES(char* path){
         PC = 0x8000;
         P = 0x34;
+        SP = 0;
         cartridge = new Cartridge(path);
     }
     char readAddress(unsigned short address){
@@ -115,6 +117,35 @@ class NES{
         char data = 0;
         unsigned short address;
         //check specific instructions here then pattern matching
+        switch(instruction){
+            case 0x00: BRK(); return;
+            case 0x20: JSR(); return;
+            case 0x40: RTI(); return;
+            case 0x60: RTS(); return;
+            case 0x08: PHP(); return;
+            case 0x28: PLP(); return;
+            case 0x48: PHA(); return;
+            case 0x68: PLA(); return;
+            case 0x88: DEY(); return;
+            case 0xA8: TAY(); return;
+            case 0xC8: INY(); return;
+            case 0xE8: INX(); return;
+            case 0x18: CLC(); return;
+            case 0x38: SEC(); return;
+            case 0x58: CLI(); return;
+            case 0x78: SEI(); return;
+            case 0x98: TYA(); return;
+            case 0xB8: CLV(); return;
+            case 0xD8: CLD(); return;
+            case 0xF8: SED(); return;
+            case 0x8A: TXA(); return;
+            case 0x9A: TXS(); return;
+            case 0xAA: TAX(); return;
+            case 0xBA: TSX(); return;
+            case 0xCA: DEX(); return;
+            case 0xEA: NOP(); return; 
+
+        }
         if(instruction&0x1F==0x10){
             PC = PC + 1;
             data = readAddress(address);
@@ -232,13 +263,13 @@ class NES{
             }
             else{
                 switch(instruction & 0xE0){
-                    case 0x1: break; //BIT 
-                    case 0x2: break; //JMP
-                    case 0x3: break; //JMP ABS
-                    case 0x4: break; //STY
-                    case 0x5: break; //LDY
-                    case 0x6: break; //CPY
-                    case 0x7: break; //CPX 
+                    case 0x1: BIT(data); break;  //BIT 
+                    case 0x2: JMP(address); break; //JMP
+                    case 0x3: JMP_ABS(address); break; //JMP ABS
+                    case 0x4: STY(address); break; //STY
+                    case 0x5: LDY(data); break; //LDY
+                    case 0x6: CPY(data); break; //CPY
+                    case 0x7: CPX(data); break; //CPX 
                 }
             }
 
@@ -450,7 +481,136 @@ class NES{
             PC = PC + data - 1 ; //chedck this
         }
     }
+    void push(char data){
+        char highByte = 0x1F;
+        writeAddress(highByte << 8 | SP, data);
+        SP = SP - 1;
+    }
 
+    char pop(){
+        char highByte = 0x1F;
+        SP = SP + 1;
+        char data = readAddress(highByte << 8 | SP);
+        return data;
+    }
+
+    void BRK(){
+        setFlag(INT, 1);
+        push(PC+2);
+        push(P);
+    }
+
+    void JSR(){
+        push(PC+2);
+        PC = PC + 1;
+        short address = readLittleEndian(PC);
+        address = address - 1;
+        PC = address;
+        //check correct PC behavior
+    }
+
+    void RTI(){
+        P = pop();
+        PC = pop();
+    }
+
+    void RTS(){
+        PC = pop();
+        PC = PC + 1;
+    }    
+
+    void PHP(){
+        push(P);
+    }
+
+    void PLP(){
+        P = pop();
+    }
+
+    void PHA(){
+        push(A);
+    }
+
+    void PLA(){
+        A = pop();
+    }
+
+    void DEY(){
+        Y = Y - 1;
+        checkValueFlags(Y);
+    }
+
+    void TAY(){
+        Y = A;
+        checkValueFlags(Y);
+    }
+
+    void INY(){
+        Y = Y + 1;
+        checkValueFlags(Y);
+    }
+
+    void INX(){
+        X = X + 1;
+        checkValueFlags(X);
+    }
+
+    void CLC(){
+        setFlag(CARRY, 0);
+    }
+    void SEC(){
+        setFlag(CARRY, 1);
+    }
+    void CLI(){
+        setFlag(INT, 0);
+    }
+
+    void SEI(){
+        setFlag(INT, 1);
+    }
+
+    void TYA(){
+        A = Y;
+        checkValueFlags(A);
+    }   
+
+    void CLV(){
+        setFlag(OVERFLOW, 0);
+    }
+
+    void CLD(){
+        
+    }
+
+    
+    void SED(){
+
+    }
+
+    void TXA(){
+        A = X;
+        checkValueFlags(A);
+    }
+
+    void TXS(){
+        SP = X;
+    }
+
+    void TAX(){
+        X = A;
+    }
+
+    void TSX(){
+        X = SP;
+    }
+
+    void DEX(){
+        X = X - 1;
+    }
+
+    void NOP(){
+
+    }
 };
 
 int main(int argc, char* argv[]){
@@ -459,3 +619,6 @@ int main(int argc, char* argv[]){
         nes.cycle();
     }
 }
+
+//What happens on reset and what happens every cycle
+//Check JUMP on edge or what?
