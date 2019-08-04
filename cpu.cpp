@@ -32,7 +32,7 @@ class NES{
     NES(char* path){
         PC = 0x8000;
         P = 0x34;
-        SP = 0;
+        SP = 0xFF;
         cartridge = new Cartridge(path);
         IRQ = true;
         NMI = true;
@@ -61,7 +61,7 @@ class NES{
     short readLittleEndian(unsigned short address){
         short data = 0;
         data = readAddress(address+1);
-        data = (data)<<4;
+        data = (data)<<8;
         data = data | readAddress(address);
     }
 
@@ -73,30 +73,46 @@ class NES{
     }
 
     bool getFlag(char mask){
-        return P&mask > 0;
+        return ((P&mask) != 0);
     }
 
     void checkValueFlags(char value){
         bool negBit, zeroBit;
         negBit = value < 0 ? 1: 0;
-        zeroBit = value = 0? 0: 1;
+        zeroBit = value == 0? 0: 1;
         setFlag(ZERO, zeroBit);
         setFlag(NEGATIVE, negBit);
     }
 
+    void printStatus(){
+        printf("Program Counter: %u\n", PC);
+        printf("Stack pointer: %d", SP);
+        printf("Registers: A: %d, X: %d, Y: %d\n", A, X, Y);
+        printf("Flags: \n N: %d \n Z: %d \n  Carry: %d \n Overflow: %d \n Interrupt Disable: %d\n ", \
+        getFlag(NEGATIVE),\
+        getFlag(ZERO), \
+        getFlag(CARRY), \
+        getFlag(OVERFLOW), \
+        getFlag(INT) \
+        );
+    }
+
     void readImmediate(unsigned short& PC, char& data, unsigned short address){
+        cout << "IMMEDIATE ";
         PC = PC + 1;
         address = PC;
         data = readAddress(PC);
     }
 
     void readZeroPage(unsigned short& PC, char& data, unsigned short address){
+        cout << "ZERO PAGE ";
         PC = PC + 1;
         address = readAddress(PC);
         data = readAddress(address);
     }
 
     void readAbsolute(unsigned short& PC, char& data, unsigned short &address){
+        cout << "ABSOLUTE ";
         PC = PC + 1;
         address = readLittleEndian(PC);
         PC = PC + 1;
@@ -105,12 +121,14 @@ class NES{
 
     /* ZERO PAGE, X: X provided since in two instructions the X changes to Y */
     void readZeroPageX(unsigned short& PC, char& data, unsigned short& address, char X){
+        cout << "ZEROPAGE X" ;
         PC = PC + 1;
         address = PC + X;
         data = readAddress(PC+X);
     }
 
     void readAbsoluteX(unsigned short &PC, char& data, unsigned short & address,char X){
+        cout <<"ABSOLUTE X ";
         PC = PC + 1;
         address = readLittleEndian(PC) + X;
         PC = PC + 1;
@@ -190,6 +208,7 @@ class NES{
                     break;
                 }
                 case 0x4: {
+                    cout << "(ABSOLUTE, Y)" << endl;
                     PC = PC + 1;
                     short address = readLittleEndian(PC)+Y;
                     PC = PC + 1;
@@ -198,6 +217,7 @@ class NES{
                 }
                 case 0x5: {
                     readZeroPageX(PC, data, address, X);
+                    break;
                 }
                 case 0x6: { 
                     readAbsoluteX(PC, data, address, X);
@@ -678,6 +698,7 @@ int main(int argc, char* argv[]){
     NES nes(argv[1]);
     while(true){
         nes.cycle();
+        nes.printStatus();
     }
 }
 

@@ -20,11 +20,11 @@ Cartridge::Cartridge(char *path)
     }
 }
 
-char Cartridge::read(short address)
+char Cartridge::read(unsigned short address)
 {
     return PRG_ROM[address];
 }
 
-void Cartridge::write(short address, char value){
+void Cartridge::write(unsigned short address, char value){
     PRG_ROM[address] = value;
 }
