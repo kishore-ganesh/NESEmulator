@@ -20,7 +20,7 @@ Cartridge::Cartridge(char *path)
     }
 }
 
-char Cartridge::read(unsigned short address)
+unsigned char Cartridge::read(unsigned short address)
 {
     return PRG_ROM[address];
 }

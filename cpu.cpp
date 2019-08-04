@@ -5,6 +5,7 @@ using namespace std;
 /*We should handle addresses automaitcally or not? */
 /*Look at best practices and refactor */
 //Check write addresses
+//Introduce cycle accuracy later
 #include "cartridge.h"
 class NES{
     char A, X, Y, P, SP; //check check setting of stack pointer
@@ -38,7 +39,7 @@ class NES{
         NMI = true;
         previousNMILevel = true;
     }
-    char readAddress(unsigned short address){
+   unsigned char readAddress(unsigned short address){
         if(address<=0x1FFF){
             return memory[address%(0x0800)];
         }
@@ -54,15 +55,16 @@ class NES{
         }
         else if(address>=0x8000&& address<=0xFFFF){
             short prgRomAddress = address - 0x8000;
-            cartridge->write(prgRomAddress, value);
+            // cartridge->write(prgRomAddress, value);
         }
 
     }
     short readLittleEndian(unsigned short address){
         short data = 0;
-        data = readAddress(address+1);
+        data = (unsigned char)readAddress(address+1);
         data = (data)<<8;
-        data = data | readAddress(address);
+        data = data | (unsigned char)readAddress(address); // sign bit extended here
+        return data;
     }
 
     void setFlag(char mask, bool bit){
@@ -85,16 +87,17 @@ class NES{
     }
 
     void printStatus(){
-        printf("Program Counter: %u\n", PC);
+        printf("Program Counter: %x\n", PC);
         printf("Stack pointer: %d", SP);
         printf("Registers: A: %d, X: %d, Y: %d\n", A, X, Y);
-        printf("Flags: \n N: %d \n Z: %d \n  Carry: %d \n Overflow: %d \n Interrupt Disable: %d\n ", \
+        printf("Flags: \n N: %d \n Z: %d \n  Carry: %d \n Overflow: %d \n Interrupt Disable: %d\n", \
         getFlag(NEGATIVE),\
         getFlag(ZERO), \
         getFlag(CARRY), \
         getFlag(OVERFLOW), \
         getFlag(INT) \
         );
+        printf("IRQ: %d, NMI: %d\n", IRQ, NMI);
     }
 
     void readImmediate(unsigned short& PC, char& data, unsigned short address){
@@ -107,7 +110,7 @@ class NES{
     void readZeroPage(unsigned short& PC, char& data, unsigned short address){
         cout << "ZERO PAGE ";
         PC = PC + 1;
-        address = readAddress(PC);
+        address = ((0x00)<<8)|readAddress(PC);
         data = readAddress(address);
     }
 
@@ -261,7 +264,7 @@ class NES{
                     break;
                 } 
                 case 0x5: {
-                    if(instruction&0xE0==0x4||instruction&0xE0==0x5){   //check mask
+                    if(aaa==0x4||aaa==0x5){   //check mask
                         readZeroPageX(PC, data, address, Y);
                     }
                     else{
@@ -270,7 +273,7 @@ class NES{
                     break;
                 }
                 case 0x7: {
-                    if(instruction&0xE0==0x5){
+                    if(aaa==0x5){
                         readAbsoluteX(PC, data, address, Y);
                     }
                     else{
@@ -363,7 +366,7 @@ class NES{
     }
     void STA(short int address){
         cout << "STA" <<endl;
-        memory[address] = A; // check this
+        writeAddress(address, A);  // check this
     }
     void LDA(char data){
         cout << "LDA" <<endl;
