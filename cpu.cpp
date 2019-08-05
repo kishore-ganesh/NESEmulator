@@ -97,7 +97,7 @@ class NES{
         getFlag(OVERFLOW), \
         getFlag(INT) \
         );
-        printf("IRQ: %d, NMI: %d\n", IRQ, NMI);
+        printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI);
     }
 
     void readImmediate(unsigned short& PC, char& data, unsigned short address){
@@ -177,11 +177,11 @@ class NES{
             case 0xEA: NOP(); return; 
 
         }
-        if(instruction&0x1F==0x10){
+        if((instruction&0x1F)==0x10){
             PC = PC + 1;
-            data = readAddress(address);
+            data = readAddress(PC);
             bool bit = instruction & 0x20;
-            switch(instruction&0xC0){
+            switch((instruction&0xC0)>>6){
                 case 0x0: BRANCH(NEGATIVE, bit, data); break;
                 case 0x1: BRANCH(OVERFLOW, bit, data); break;
                 case 0x2: BRANCH(CARRY, bit, data); break;
