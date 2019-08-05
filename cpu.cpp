@@ -553,6 +553,7 @@ char NES::pop(){
 short NES::popLittleEndian(){
     short result = pop();
     result = (pop() << 8) | result;
+    return result;
 }
 
 void NES::BRK(){
