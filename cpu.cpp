@@ -6,6 +6,8 @@ using namespace std;
 /*Look at best practices and refactor */
 //Check write addresses
 //Introduce cycle accuracy later
+//Implement the B flag
+//Delay through Cycles
 #include "cartridge.h"
 class NES{
     char A, X, Y, P, SP; //check check setting of stack pointer
@@ -42,6 +44,17 @@ class NES{
    unsigned char readAddress(unsigned short address){
         if(address<=0x1FFF){
             return memory[address%(0x0800)];
+        }
+        else if(address==0x2002){
+            return 0x80;
+        }
+
+        else if(address>=0x2000&&address<=0x3FFF){
+            cout << "PPU access" <<endl;
+        }
+
+        else if(address==0x4016|| address == 0x4017){
+            cout << "INPUT" << endl;
         }
         else if(address>=0x8000&&address<=0xFFFF){
             short prgRomAddress = address - 0x8000;
@@ -180,7 +193,7 @@ class NES{
         if((instruction&0x1F)==0x10){
             PC = PC + 1;
             data = readAddress(PC);
-            bool bit = instruction & 0x20;
+            bool bit = (instruction & 0x20) >> 5;
             switch((instruction&0xC0)>>6){
                 case 0x0: BRANCH(NEGATIVE, bit, data); break;
                 case 0x1: BRANCH(OVERFLOW, bit, data); break;
@@ -243,7 +256,7 @@ class NES{
                 case 0x7: SBC(data); break;
             }
         }
-        else if(cc==0x02 || cc==0x03){
+        else if(cc==0x02 || cc==0x00){
             bool accumulator = false;
             switch(bbb){ // check this mask
                 case 0x0: {
@@ -313,14 +326,14 @@ class NES{
         short address;
         if(!NMI&&previousNMILevel){
             previousNMILevel = true;
-            push(PC);
+            pushLittleEndian(PC);
             push(P);
             setFlag(INT, 1);
             address = readLittleEndian(0xFFFA);
             PC = address;
         }
         else if(!IRQ&&!getFlag(INT)){
-            push(PC);
+            pushLittleEndian(PC);
             push(P);
             setFlag(INT, 1);
             address = readLittleEndian(0xFFFE);
@@ -348,12 +361,12 @@ class NES{
     }
     void ADC(char data){
         cout<< "ADC" << endl;
-        bool carryBit = A + data > 0xFF ? 1 : 0;
+        bool carryBit = (A + data) > 0xFF ? 1 : 0;
         bool overFlowBit = (A + data > 0x7F || A + data < 0x80);
         setFlag(CARRY, carryBit);
         A+=data;
         checkValueFlags(A);
-        setFlag(OVERFLOW, overFlowBit);
+        setFlag(OVERFLOW, overFlowBit); //fix this and have carry
     }
     void SBC(char data){
         cout << "SBC" <<endl;
@@ -384,13 +397,13 @@ class NES{
     void ASL(char data, unsigned short address, bool accumulator){
         bool carryBit = 0;
         if(accumulator){
-            carryBit = A & 0x8F;
+            carryBit = (A & 0x80) >> 7;
             A = A << 1;
             checkValueFlags(A);
             
         }
         else{
-            carryBit = data & 0x8F;
+            carryBit = (data & 0x80) >> 7;
             writeAddress(address, data << 1);
             checkValueFlags(data);
         }
@@ -401,14 +414,14 @@ class NES{
         bool zeroBit = getFlag(CARRY);
         bool carryBit = 0;
         if(accumulator){
-            carryBit = A & 0x8F;
+            carryBit = (A & 0x80) >> 7;
             A  = A << 1;
             A &= 0xFE;
             A |= zeroBit ? 0x01: 0;
             checkValueFlags(A);
         }
         else{
-            carryBit = data & 0x8F;
+            carryBit = (data & 0x8F) >> 7;
             data = data << 1;
             data&= 0xFE;
             data|= zeroBit ? 0x1: 0;
@@ -535,13 +548,20 @@ class NES{
     void BRANCH(masks flag, bool bit, char data){
         cout << "BRANCH" << endl;
         if(getFlag(flag)==bit){
-            PC = PC + data - 1 ; //chedck this
+            PC = PC + data - 2; //chedck this
         }
     }
     void push(char data){
         char highByte = 0x1F;
         writeAddress(highByte << 8 | SP, data);
         SP = SP - 1;
+    }
+
+    void pushLittleEndian(short data){
+        char highByte = (data>>8);
+        char lowByte = (data&0x0F);
+        push(highByte);
+        push(lowByte);
     }
 
     char pop(){
@@ -551,17 +571,22 @@ class NES{
         return data;
     }
 
+    short popLittleEndian(){
+        short result = pop();
+        result = (pop() << 8) | result;
+    }
+
     void BRK(){
         cout << "BRK" << endl;
         setFlag(INT, 1);
         IRQ = false;
-        push(PC+2);
+        pushLittleEndian(PC+2);
         push(P);
     }
 
     void JSR(){
         cout << "JSR" << endl;
-        push(PC+2);
+        pushLittleEndian(PC+2);
         PC = PC + 1;
         short address = readLittleEndian(PC);
         address = address - 1;
@@ -572,7 +597,7 @@ class NES{
     void RTI(){
         cout << "RTI" << endl;
         P = pop();
-        PC = pop();
+        PC = popLittleEndian();
         IRQ = true;
         NMI = true;
         previousNMILevel = true; //check this
@@ -580,8 +605,8 @@ class NES{
 
     void RTS(){
         cout << "RTS" << endl;
-        PC = pop();
-        PC = PC + 1;
+        PC = popLittleEndian();
+        PC = PC + 1; //check this
     }    
 
     void PHP(){
