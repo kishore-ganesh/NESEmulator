@@ -1,3 +1,5 @@
+#ifndef CARTRIDGE_INCLUDE
+#define CARTRIDGE_INCLUDE
 struct iNES_Header{
     char NESConstant[4];
     char prgSize;
@@ -14,3 +16,5 @@ class Cartridge {
     unsigned char read(unsigned short address);
     void write(unsigned short address, char value);
 };
+
+#endif

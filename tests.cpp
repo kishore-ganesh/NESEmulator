@@ -7,7 +7,7 @@ void clearFlags(NES& nes){
     vector<short> Flags = {0x01, 0x02, 0x04, 0x10, 0x20, 0x40};
     for (auto flag : Flags)
     {        
-            nes.setFlag(flag, 0);
+            nes.cpu->setFlag(flag, 0);
     }
 }
 int main(int argc, char *argv[])
@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
         bool Flagtest = false;
         for (int boolbit = 0; boolbit <= 1; boolbit++)
         {
-            nes.setFlag(flag, boolbit);
-            nes.getFlag(flag) == boolbit ? Flagtest = true : Flagtest = false;
+            nes.cpu->setFlag(flag, boolbit);
+            nes.cpu->getFlag(flag) == boolbit ? Flagtest = true : Flagtest = false;
             if (!Flagtest)
             {
                 cout << "FlagTest Failed:" << flag << "\n";
@@ -31,39 +31,39 @@ int main(int argc, char *argv[])
         }
     }
 
-    nes.setFlag(NES::CARRY, 1);
+    nes.cpu->setFlag(CPU::CARRY, 1);
     // ROR Test- with accumulator
-    nes.A = 0x1A;
-    nes.ROR('0', nes.A, true);
-    if (!(nes.A == (char)0x8D && nes.getFlag(NES::CARRY) == 0))
+    nes.cpu->A = 0x1A;
+    nes.cpu->ROR('0', nes.cpu->A, true);
+    if (!(nes.cpu->A == (char)0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
         cout << "ROR Error\n";
     clearFlags(nes);    
-    nes.writeAddress(0x0712, 0x1A);
-    nes.ROR(0x1A, 0x0712, false);
+    nes.cpu->memory->writeAddress(0x0712, 0x1A);
+    nes.cpu->ROR(0x1A, 0x0712, false);
 
-    if (!(nes.readAddress(0x0712) == (char)0x8D && nes.getFlag(NES::CARRY) == 0))
+    if (!(nes.cpu->memory->readAddress(0x0712) == (char)0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
         cout << "ROR Error\n";
     clearFlags(nes);
-    nes.checkValueFlags(-1);
+    nes.cpu->checkValueFlags(-1);
 
-    if(!(!nes.getFlag(NES::ZERO)&&nes.getFlag(NES::NEGATIVE))){
+    if(!(!nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE))){
         cout << "Check value flags error - Negative";
     }
     clearFlags(nes);
-    nes.checkValueFlags(0);
-    if(!(nes.getFlag(NES::ZERO)&&!nes.getFlag(NES::NEGATIVE))){
+    nes.cpu->checkValueFlags(0);
+    if(!(nes.cpu->getFlag(CPU::ZERO)&&!nes.cpu->getFlag(CPU::NEGATIVE))){
         cout << "Check value flags error - Zero";
     }
 
-    nes.writeAddress(0x0712, 0x04);
-    if(nes.readAddress(0x0712)!=0x04){
+    nes.cpu->memory->writeAddress(0x0712, 0x04);
+    if(nes.cpu->memory->readAddress(0x0712)!=0x04){
         cout << "NES write/read error" <<endl;
     }
 
     clearFlags(nes);
-    nes.A = 0x8D;
-    nes.BIT(0x8D);
-    if(!(nes.getFlag(NES::ZERO)&&nes.getFlag(NES::NEGATIVE) && !nes.getFlag(NES::OVERFLOW))){
+    nes.cpu->A = 0x8D;
+    nes.cpu->BIT(0x8D);
+    if(!(nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE) && !nes.cpu->getFlag(CPU::OVERFLOW))){
         cout << "BIT ERROR" << endl;
     }
     
@@ -71,21 +71,21 @@ int main(int argc, char *argv[])
     JMP last of page and normal
      */
 
-    nes.writeAddress(0x0712, 0x12);
-    nes.writeAddress(0x0713, 0x13);
-    if(nes.readLittleEndian(0x0712)!=(unsigned short)(0x1312)){
+    nes.cpu->memory->writeAddress(0x0712, 0x12);
+    nes.cpu->memory->writeAddress(0x0713, 0x13);
+    if(nes.cpu->memory->readLittleEndian(0x0712)!=(unsigned short)(0x1312)){
         cout << "Read little endian error" << endl;
     }
-    nes.JMP(0x0712);
+    nes.cpu->JMP(0x0712);
 
-    if(nes.PC!=0x1312){
+    if(nes.cpu->PC!=0x1312){
         cout << "JMP normal error" << endl;
     }
 
-    nes.writeAddress(0x0700, 0x01);
-    nes.writeAddress(0x07FF, 0x14);
-    nes.JMP(0x07FF);
-    if(nes.PC!=0x0114){
+    nes.cpu->memory->writeAddress(0x0700, 0x01);
+    nes.cpu->memory->writeAddress(0x07FF, 0x14);
+    nes.cpu->JMP(0x07FF);
+    if(nes.cpu->PC!=0x0114){
         cout << "JMP page boundary error" << endl;
     }
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
 
     // ROR Test- without accumulator
-    // nes.ROR('',,false);
+    // nes.cpu->ROR('',,false);
 }
 
 

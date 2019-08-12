@@ -1,5 +1,5 @@
-nesemulator: main.cpp cartridge.cpp cpu.cpp
-	g++ main.cpp cpu.cpp cartridge.cpp -o cpu -g -std=c++11
+nesemulator: main.cpp cartridge.cpp nes.cpp cpu.cpp memory.cpp interrupt.cpp ppu.cpp
+	g++ main.cpp nes.cpp cpu.cpp cartridge.cpp memory.cpp interrupt.cpp ppu.cpp -o cpu -g -std=c++11
 	
-test: main.cpp cartridge.cpp cpu.cpp
-	g++ tests.cpp cpu.cpp cartridge.cpp -o tests -g -std=c++11
+test: main.cpp cartridge.cpp nes.cpp cpu.cpp memory.cpp interrupt.cpp ppu.cpp
+	g++ tests.cpp nes.cpp cpu.cpp cartridge.cpp memory.cpp interrupt.cpp ppu.cpp -o tests -g -std=c++11

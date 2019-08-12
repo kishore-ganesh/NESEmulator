@@ -1,7 +1,7 @@
 #include "ppu.h"
 
-PPU::PPU(Cartridge* cartridge){
-    this->cartridge = cartridge;
+PPU::PPU(Memory* memory){
+    this->memory = memory;
 }
 
 char PPU::readAddress(unsigned short address)

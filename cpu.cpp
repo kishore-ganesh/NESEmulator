@@ -1,80 +1,26 @@
-
-using namespace std;
-/* RUN SET FLAGS AFTER RUNNING INSTRUCTION */
-/*We should handle addresses automaitcally or not? */
-/*Look at best practices and refactor */
-//Check write addresses
-//Introduce cycle accuracy later
-//Implement the B flag
-//Delay through Cycles
-#include "nes.h"
-    
-NES::NES(char* path){
+#include "cpu.h"
+using std::cout;
+using std::endl;
+CPU::CPU(Memory* memory){
+    this->memory = memory;
     PC = 0x8000;
     P = 0x34;
     SP = 0xFF;
-    cartridge = new Cartridge(path);
-    ppu = new PPU(cartridge);
+    NMI.clearInterrupt(); //Make NMI a pointer
     IRQ = true;
-    NMI = true;
-    previousNMILevel = true;
 }
-
-unsigned char NES::readAddress(unsigned short address){
-    if(address<=0x1FFF){
-        return memory[address%(0x0800)];
-    }
-    else if(address==0x2002){
-        return 0x80;
-    }
-
-    else if(address>=0x2000&&address<=0x3FFF){
-        cout << "PPU access" <<endl;
-    }
-
-    else if(address==0x4016|| address == 0x4017){
-        cout << "INPUT" << endl;
-    }
-    else if(address>=0x8000&&address<=0xFFFF){
-        short prgRomAddress = address - 0x8000;
-        return cartridge->read(prgRomAddress);
-    }
-}
-
-void NES::writeAddress(unsigned short address, char value){
-    if(address <= 0x1FFF){
-        memory[address%0x800] = value;
-    }
-    else if(address == 0x4014){
-        OAMDMA(value);
-    }
-    else if(address>=0x8000&& address<=0xFFFF){
-        short prgRomAddress = address - 0x8000;
-        // cartridge->write(prgRomAddress, value);
-    }
-
-}
-
-short NES::readLittleEndian(unsigned short address){
-    short data = 0;
-    data = (unsigned char)readAddress(address+1);
-    data = (data)<<8;
-    data = data | (unsigned char)readAddress(address); // sign bit extended here
-    return data;
-}
-
-void NES::setFlag(char mask, bool bit){
+void CPU::setFlag(char mask, bool bit){
     P&=~mask;
     if(bit){
         P|=mask;
     }
 }
 
-bool NES::getFlag(char mask){
+bool CPU::getFlag(char mask){
     return ((P&mask) != 0);
 }
 
-void NES::checkValueFlags(char value){
+void CPU::checkValueFlags(char value){
     bool negBit, zeroBit;
     negBit = value < 0 ? 1: 0;
     zeroBit = value == 0? 1: 0;
@@ -82,7 +28,7 @@ void NES::checkValueFlags(char value){
     setFlag(NEGATIVE, negBit);
 }
 
-void NES::printStatus(){
+void CPU::printStatus(){
     printf("Program Counter: %x\n", PC);
     printf("Stack pointer: %d", SP);
     printf("Registers: A: %d, X: %d, Y: %d\n", A, X, Y);
@@ -93,54 +39,48 @@ void NES::printStatus(){
     getFlag(OVERFLOW), \
     getFlag(INT) \
     );
-    printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI);
+    printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI.checkInterrupt());
 }
 
-void NES::OAMDMA(char highByte){
-    for(char i=0x00; i<=0xFF; i++){
-        char data = readAddress((highByte<<8) | i); //Check that OAM DMA increases OAM Addresses
-        writeAddress(0x2004, data);
-    }
-}
 
-void NES::readImmediate(unsigned short& PC, char& data, unsigned short address){
+void CPU::readImmediate(unsigned short& PC, char& data, unsigned short address){
     cout << "IMMEDIATE ";
     PC = PC + 1;
     address = PC;
-    data = readAddress(PC);
+    data = memory->readAddress(PC);
 }
 
-void NES::readZeroPage(unsigned short& PC, char& data, unsigned short address){
+void CPU::readZeroPage(unsigned short& PC, char& data, unsigned short address){
     cout << "ZERO PAGE ";
     PC = PC + 1;
-    address = ((0x00)<<8)|readAddress(PC);
-    data = readAddress(address);
+    address = ((0x00)<<8)|memory->readAddress(PC);
+    data = memory->readAddress(address);
 }
 
-void NES::readAbsolute(unsigned short& PC, char& data, unsigned short &address){
+void CPU::readAbsolute(unsigned short& PC, char& data, unsigned short &address){
     cout << "ABSOLUTE ";
     PC = PC + 1;
-    address = readLittleEndian(PC);
+    address = memory->readLittleEndian(PC);
     PC = PC + 1;
-    data = readAddress(address);
+    data = memory->readAddress(address);
 }
 
 /* ZERO PAGE, X: X provided since in two instructions the X changes to Y */
-void NES::readZeroPageX(unsigned short& PC, char& data, unsigned short& address, char X){
+void CPU::readZeroPageX(unsigned short& PC, char& data, unsigned short& address, char X){
     cout << "ZEROPAGE X" ;
     PC = PC + 1;
     address = PC + X;
-    data = readAddress(PC+X);
+    data = memory->readAddress(PC+X);
 }
 
-void NES::readAbsoluteX(unsigned short &PC, char& data, unsigned short & address,char X){
+void CPU::readAbsoluteX(unsigned short &PC, char& data, unsigned short & address,char X){
     cout <<"ABSOLUTE X ";
     PC = PC + 1;
-    address = readLittleEndian(PC) + X;
+    address = memory->readLittleEndian(PC) + X;
     PC = PC + 1;
-    data = readAddress(address);
+    data = memory->readAddress(address);
 }
-void NES::processInstruction(unsigned char instruction){
+void CPU::processInstruction(unsigned char instruction){
     
     char data = 0;
     unsigned short address;
@@ -182,7 +122,7 @@ void NES::processInstruction(unsigned char instruction){
     }
     if((instruction&0x1F)==0x10){
         PC = PC + 1;
-        data = readAddress(PC);
+        data = memory->readAddress(PC);
         bool bit = (instruction & 0x20) >> 5;
         switch((instruction&0xC0)>>6){
             case 0x0: BRANCH(NEGATIVE, bit, data); break;
@@ -196,9 +136,9 @@ void NES::processInstruction(unsigned char instruction){
         switch(bbb){
             case 0x0: {
                 PC = PC + 1;
-                address = readLittleEndian(PC+X);
+                address = memory->readLittleEndian(PC+X);
                 PC = PC + 1;
-                data = readAddress(address);
+                data = memory->readAddress(address);
                 break;
             } 
             case 0x1: {
@@ -216,9 +156,9 @@ void NES::processInstruction(unsigned char instruction){
             case 0x4: {
                 cout << "(ABSOLUTE, Y)" << endl;
                 PC = PC + 1;
-                short address = readLittleEndian(PC)+Y;
+                short address = memory->readLittleEndian(PC)+Y;
                 PC = PC + 1;
-                data = readAddress(address);
+                data = memory->readAddress(address);
                 break;
             }
             case 0x5: {
@@ -312,44 +252,43 @@ void NES::processInstruction(unsigned char instruction){
     }
     
 }
-void NES::cycle(){
+void CPU::cycle(){
     short address;
-    if(!NMI&&previousNMILevel){
-        previousNMILevel = true;
+    if(NMI.checkInterrupt()){
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
-        address = readLittleEndian(0xFFFA);
+        address = memory->readLittleEndian(0xFFFA);
         PC = address;
     }
     else if(!IRQ&&!getFlag(INT)){
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
-        address = readLittleEndian(0xFFFE);
+        address = memory->readLittleEndian(0xFFFE);
         PC = address; 
     }
-    char instruction = readAddress(PC);
+    char instruction = memory->readAddress(PC);
     processInstruction(instruction);
     PC = PC + 1; //check for jump
 }
-void NES::ORA(char data){
+void CPU::ORA(char data){
     cout << "ORA" << endl;
     A|=data;
     checkValueFlags(A);
 }
 
-void NES::AND(char data){
+void CPU::AND(char data){
     cout << "AND" << endl;
     A&=data;
     checkValueFlags(A);
 }
-void NES::EOR(char data){
+void CPU::EOR(char data){
     cout << "EOR" << endl;
     A^=data;
     checkValueFlags(A);
 }
-void NES::ADC(char data){
+void CPU::ADC(char data){
     cout<< "ADC" << endl;
     bool carryBit = (A + data) > 0xFF ? 1 : 0;
     bool overFlowBit = (A + data > 0x7F || A + data < 0x80);
@@ -358,7 +297,7 @@ void NES::ADC(char data){
     checkValueFlags(A);
     setFlag(OVERFLOW, overFlowBit); //fix this and have carry
 }
-void NES::SBC(char data){
+void CPU::SBC(char data){
     cout << "SBC" <<endl;
     bool overFlowBit = (A - data > 0x7F || A - data < 0x80);
     bool borrowBit = A >= data ? 1: 0;
@@ -367,16 +306,16 @@ void NES::SBC(char data){
     setFlag(OVERFLOW, overFlowBit);
     setFlag(CARRY, borrowBit);
 }
-void NES::STA(short int address){
+void CPU::STA(short int address){
     cout << "STA" <<endl;
-    writeAddress(address, A);  // check this
+    memory->writeAddress(address, A);  // check this
 }
-void NES::LDA(char data){
+void CPU::LDA(char data){
     cout << "LDA" <<endl;
     A = data; //check if flag is to be set here
     checkValueFlags(A);
 }
-void NES::CMP(char data){
+void CPU::CMP(char data){
     cout << "CMP" << endl;
     bool borrowBit = A >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
@@ -384,7 +323,7 @@ void NES::CMP(char data){
     // Update flags based on CMP
 }
 
-void NES::ASL(char data, unsigned short address, bool accumulator){
+void CPU::ASL(char data, unsigned short address, bool accumulator){
     bool carryBit = 0;
     if(accumulator){
         carryBit = (A & 0x80) >> 7;
@@ -394,13 +333,13 @@ void NES::ASL(char data, unsigned short address, bool accumulator){
     }
     else{
         carryBit = (data & 0x80) >> 7;
-        writeAddress(address, data << 1);
+        memory->writeAddress(address, data << 1);
         checkValueFlags(data);
     }
     setFlag(CARRY, carryBit);
     cout << "ASL" <<endl;
 }
-void NES::ROL(char data, unsigned short address, bool accumulator){
+void CPU::ROL(char data, unsigned short address, bool accumulator){
     bool zeroBit = getFlag(CARRY);
     bool carryBit = 0;
     if(accumulator){
@@ -415,13 +354,13 @@ void NES::ROL(char data, unsigned short address, bool accumulator){
         data = data << 1;
         data&= 0xFE;
         data|= zeroBit ? 0x1: 0;
-        writeAddress(address, data);
+        memory->writeAddress(address, data);
         checkValueFlags(data);
     }
     setFlag(CARRY, carryBit);
     cout << "ROL" << endl;
 }
-void NES::LSR(char data, unsigned short address, bool accumulator){
+void CPU::LSR(char data, unsigned short address, bool accumulator){
     bool nextCarryBit = 0;
     if(accumulator){
         nextCarryBit = A & 0x01;
@@ -431,13 +370,13 @@ void NES::LSR(char data, unsigned short address, bool accumulator){
     else{
         nextCarryBit = data & 0x01;
         data = data >> 1;
-        writeAddress(address, data);
+        memory->writeAddress(address, data);
         checkValueFlags(data);
     }
     setFlag(CARRY, nextCarryBit);
     cout << "LSR" << endl;
 }
-void NES::ROR(char data, unsigned short address, bool accumulator){
+void CPU::ROR(char data, unsigned short address, bool accumulator){
     bool previousCarryBit = getFlag(CARRY);
     bool nextCarryBit = 0;
     if(accumulator){
@@ -452,34 +391,34 @@ void NES::ROR(char data, unsigned short address, bool accumulator){
         data = data >> 1;
         data &= 0x7F;
         data |= previousCarryBit ? 0x80 : 0;
-        writeAddress(address, data);
+        memory->writeAddress(address, data);
         checkValueFlags(data);
     }
     setFlag(CARRY, nextCarryBit);
     cout << "ROR" << endl;
 }
-void NES::STX(char data, unsigned short address, bool accumulator){
-    writeAddress(address, X);
+void CPU::STX(char data, unsigned short address, bool accumulator){
+    memory->writeAddress(address, X);
     cout << "STX" << endl; //check if flag is set here
 }
 
-void NES::LDX(char data){
+void CPU::LDX(char data){
     cout<< "LDX" <<endl;
     X = data; //check if flag to be set here
     checkValueFlags(X);
 }
-void NES::DEC(char data, unsigned short address, bool accumulator){
-    writeAddress(address, data - 1);
+void CPU::DEC(char data, unsigned short address, bool accumulator){
+    memory->writeAddress(address, data - 1);
     checkValueFlags(data -1);
     cout << "DEC" <<endl;
 }
-void NES::INC(char data, unsigned short address, bool accumulator){
-    writeAddress(address, data + 1);
+void CPU::INC(char data, unsigned short address, bool accumulator){
+    memory->writeAddress(address, data + 1);
     checkValueFlags(data + 1);
     cout << "INC" << endl;
 }
 
-void NES::BIT(char data){
+void CPU::BIT(char data){
     // Check for immediate instruction
     cout << "BIT" << endl;
     bool zeroBit, overflowBit, negativeBit;
@@ -491,83 +430,83 @@ void NES::BIT(char data){
     setFlag(NEGATIVE, negativeBit);
 }
 
-void NES::JMP(unsigned short address){
+void CPU::JMP(unsigned short address){
     cout << "JMP" << endl;
     if(!((address&0x00FF)==0x00FF)){
-        PC = readLittleEndian(address);
+        PC = memory->readLittleEndian(address);
     }
     else{
-        short jumpTo = (readAddress(address&0xFF00) << 8) | (readAddress(address));
+        short jumpTo = (memory->readAddress(address&0xFF00) << 8) | (memory->readAddress(address));
         PC = jumpTo;
     }
     
 }
 
-void NES::JMP_ABS(unsigned short address){
+void CPU::JMP_ABS(unsigned short address){
     cout << "JMP_ABS" << endl;
     PC = address;
 
     //check for page boundaries
 }
 
-void NES::STY(unsigned short address){
+void CPU::STY(unsigned short address){
     cout << "STY" << endl;
-    writeAddress(address, Y);
+    memory->writeAddress(address, Y);
 }
 
-void NES::LDY(char data){
+void CPU::LDY(char data){
     cout << "LDY" << endl;
     Y = data;
     checkValueFlags(data);
 }
 
-void NES::CPY(char data){
+void CPU::CPY(char data){
     cout << "CPY" << endl;
     bool borrowBit = Y >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(Y - data);
 
 }
-void NES::CPX(char data){
+void CPU::CPX(char data){
     cout << "CPX" << endl;
     bool borrowBit = X >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(X - data);
 }
 
-void NES::BRANCH(masks flag, bool bit, char data){
+void CPU::BRANCH(masks flag, bool bit, char data){
     cout << "BRANCH" << endl;
     if(getFlag(flag)==bit){
         PC = PC + data - 2; //chedck this
     }
 }
-void NES::push(char data){
+void CPU::push(char data){
     char highByte = 0x1F;
-    writeAddress(highByte << 8 | SP, data);
+    memory->writeAddress(highByte << 8 | SP, data);
     SP = SP - 1;
 }
 
-void NES::pushLittleEndian(short data){
+void CPU::pushLittleEndian(short data){
     char highByte = (data>>8);
     char lowByte = (data&0x0F);
     push(highByte);
     push(lowByte);
 }
 
-char NES::pop(){
+char CPU::pop(){
     char highByte = 0x1F;
     SP = SP + 1;
-    char data = readAddress(highByte << 8 | SP);
+    char data = memory->readAddress(highByte << 8 | SP);
     return data;
 }
 
-short NES::popLittleEndian(){
+short CPU::popLittleEndian(){
     short result = pop();
     result = (pop() << 8) | result;
     return result;
 }
 
-void NES::BRK(){
+void CPU::BRK(){
     cout << "BRK" << endl;
     setFlag(INT, 1);
     IRQ = false;
@@ -575,145 +514,138 @@ void NES::BRK(){
     push(P);
 }
 
-void NES::JSR(){
+void CPU::JSR(){
     cout << "JSR" << endl;
     pushLittleEndian(PC+2);
     PC = PC + 1;
-    short address = readLittleEndian(PC);
+    short address = memory->readLittleEndian(PC);
     address = address - 1;
     PC = address;
     //check correct PC behavior
 }
 
-void NES::RTI(){
+void CPU::RTI(){
     cout << "RTI" << endl;
     P = pop();
     PC = popLittleEndian();
     IRQ = true;
-    NMI = true;
-    previousNMILevel = true; //check this
+    NMI.clearInterrupt();
 }
 
-void NES::RTS(){
+void CPU::RTS(){
     cout << "RTS" << endl;
     PC = popLittleEndian();
     PC = PC + 1; //check this
 }    
 
-void NES::PHP(){
+void CPU::PHP(){
     cout << "PHP" << endl;
     push(P);
 }
 
-void NES::PLP(){
+void CPU::PLP(){
     cout << "PLP" << endl;
     P = pop();
 }
 
-void NES::PHA(){
+void CPU::PHA(){
     cout << "PHA" << endl;
     push(A);
 }
 
-void NES::PLA(){
+void CPU::PLA(){
     cout << "PLA" << endl;
     A = pop();
 }
 
-void NES::DEY(){
+void CPU::DEY(){
     cout << "DEY" << endl;
     Y = Y - 1;
     checkValueFlags(Y);
 }
 
-void NES::TAY(){
+void CPU::TAY(){
     cout << "TAY" << endl;
     Y = A;
     checkValueFlags(Y);
 }
 
-void NES::INY(){
+void CPU::INY(){
     cout << "INY" << endl;
     Y = Y + 1;
     checkValueFlags(Y);
 }
 
-void NES::INX(){
+void CPU::INX(){
     cout << "INX" << endl;
     X = X + 1;
     checkValueFlags(X);
 }
 
-void NES::CLC(){
+void CPU::CLC(){
     cout << "CLC" << endl;
     setFlag(CARRY, 0);
 }
-void NES::SEC(){
+void CPU::SEC(){
     cout << "SEC" << endl;
     setFlag(CARRY, 1);
 }
-void NES::CLI(){
+void CPU::CLI(){
     cout << "CLI" << endl;
     setFlag(INT, 0);
 }
 
-void NES::SEI(){
+void CPU::SEI(){
     cout << "SEI" << endl;
     setFlag(INT, 1);
 }
 
-void NES::TYA(){
+void CPU::TYA(){
     cout << "TYA" << endl;
     A = Y;
     checkValueFlags(A);
 }   
 
-void NES::CLV(){
+void CPU::CLV(){
     cout << "CLV" << endl;
     setFlag(OVERFLOW, 0);
 }
 
-void NES::CLD(){
+void CPU::CLD(){
     cout << "CLD" << endl;
 }
 
 
-void NES::SED(){
+void CPU::SED(){
     cout << "SED" << endl;
 }
 
-void NES::TXA(){
+void CPU::TXA(){
     cout << "TXA" << endl;
     A = X;
     checkValueFlags(A);
 }
 
-void NES::TXS(){
+void CPU::TXS(){
     cout << "TXS" << endl;
     SP = X;
 }
 
-void NES::TAX(){
+void CPU::TAX(){
     cout << "TAX" << endl;
     X = A;
 }
 
-void NES::TSX(){
+void CPU::TSX(){
     cout << "TSX" << endl;
     X = SP;
 }
 
-void NES::DEX(){
+void CPU::DEX(){
     cout << "DEX" << endl;
     X = X - 1;
 }
 
-void NES::NOP(){
+void CPU::NOP(){
     cout << "NOP" << endl; 
 }
-
-
-//What happens on reset and what happens every cycle
-//Check JUMP on edge or what?
-//Check reset
-//Do CPU and PPU cycle together? Can the CPU and the PPU both do something in the same cycle
