@@ -14,6 +14,7 @@ NES::NES(char* path){
     P = 0x34;
     SP = 0xFF;
     cartridge = new Cartridge(path);
+    ppu = new PPU(cartridge);
     IRQ = true;
     NMI = true;
     previousNMILevel = true;
@@ -44,6 +45,9 @@ void NES::writeAddress(unsigned short address, char value){
     if(address <= 0x1FFF){
         memory[address%0x800] = value;
     }
+    else if(address == 0x4014){
+        OAMDMA(value);
+    }
     else if(address>=0x8000&& address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
         // cartridge->write(prgRomAddress, value);
@@ -60,7 +64,7 @@ short NES::readLittleEndian(unsigned short address){
 }
 
 void NES::setFlag(char mask, bool bit){
-    P&=!mask;
+    P&=~mask;
     if(bit){
         P|=mask;
     }
@@ -73,7 +77,7 @@ bool NES::getFlag(char mask){
 void NES::checkValueFlags(char value){
     bool negBit, zeroBit;
     negBit = value < 0 ? 1: 0;
-    zeroBit = value == 0? 0: 1;
+    zeroBit = value == 0? 1: 0;
     setFlag(ZERO, zeroBit);
     setFlag(NEGATIVE, negBit);
 }
@@ -90,6 +94,13 @@ void NES::printStatus(){
     getFlag(INT) \
     );
     printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI);
+}
+
+void NES::OAMDMA(char highByte){
+    for(char i=0x00; i<=0xFF; i++){
+        char data = readAddress((highByte<<8) | i); //Check that OAM DMA increases OAM Addresses
+        writeAddress(0x2004, data);
+    }
 }
 
 void NES::readImmediate(unsigned short& PC, char& data, unsigned short address){
@@ -482,11 +493,11 @@ void NES::BIT(char data){
 
 void NES::JMP(unsigned short address){
     cout << "JMP" << endl;
-    if(!address&0xFF){
+    if(!((address&0x00FF)==0x00FF)){
         PC = readLittleEndian(address);
     }
     else{
-        short jumpTo = (readAddress(address&0xFF<<8) << 8) | (readAddress(address));
+        short jumpTo = (readAddress(address&0xFF00) << 8) | (readAddress(address));
         PC = jumpTo;
     }
     

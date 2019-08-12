@@ -8,6 +8,7 @@ struct iNES_Header{
 
 class Cartridge {
     char PRG_ROM[32768];
+    char CHR_ROM[8192]; //check this
     public:
     Cartridge(char* path);
     unsigned char read(unsigned short address);

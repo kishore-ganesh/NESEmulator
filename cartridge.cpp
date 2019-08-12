@@ -16,8 +16,10 @@ Cartridge::Cartridge(char *path)
     if (header.prgSize == 1)
     {
         fseek(rom, pos, SEEK_SET);
-        fread(&PRG_ROM[0x4000], 0x4000, 1, rom);
+        fread(&PRG_ROM[0x4000], 0x4000, 1, rom); //check this
     }
+
+    fread(CHR_ROM, header.chrSize*8192, 1, rom);
 }
 
 unsigned char Cartridge::read(unsigned short address)

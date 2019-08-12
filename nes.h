@@ -1,11 +1,13 @@
 #include "cartridge.h"
+#include "ppu.h"
 #include<stdio.h>
 #include<iostream>
 class NES{
     public:
     char A, X, Y, P, SP; //check check setting of stack pointer
     Cartridge* cartridge;
-    enum masks{
+    PPU* ppu;
+    static enum masks{
         CARRY = 0x01,
         ZERO = 0x02,
         INT = 0x04,
@@ -39,6 +41,7 @@ class NES{
     void readAbsoluteX(unsigned short &PC, char& data, unsigned short & address,char X);
     void processInstruction(unsigned char instruction);
     void cycle();
+    void OAMDMA(char data);
     void ORA(char data);
     void AND(char data);
     void EOR(char data);
