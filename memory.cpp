@@ -13,17 +13,24 @@ unsigned char Memory::readAddress(unsigned short address){
         return 0x80;
     }
 
-    else if(address>=0x2000&&address<=0x3FFF){
+    else if(address>=0x2000&&address<=0x2007){
+        return ppu->readRegister(address - 0x2000);
         cout << "PPU access" <<endl;
     }
+    // have mirroring
 
     else if(address==0x4016|| address == 0x4017){
         cout << "INPUT" << endl;
     }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
-        return cartridge->read(prgRomAddress);
+        return cartridge->readPRGAddress(prgRomAddress);
     }
+}
+
+
+unsigned char Memory::readCHRAddress(unsigned short address){
+    return cartridge->readCHRAddress(address);
 }
 
 void Memory::writeAddress(unsigned short address, char value){
@@ -31,6 +38,12 @@ void Memory::writeAddress(unsigned short address, char value){
         memory[address%0x800] = value;
     }
     //add for PPU registers
+    
+    else if(address >= 0x2000 && address <= 0x2007){
+        ppu->writeRegister(address-0x2000, value);
+    }
+
+    // Have mirroring here
     else if(address == 0x4014){
         OAMDMA(value);
     }

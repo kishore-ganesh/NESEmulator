@@ -13,7 +13,8 @@ class Cartridge {
     char CHR_ROM[8192]; //check this
     public:
     Cartridge(char* path);
-    unsigned char read(unsigned short address);
+    unsigned char readPRGAddress(unsigned short address);
+    unsigned char readCHRAddress(unsigned short address);
     void write(unsigned short address, char value);
 };
 

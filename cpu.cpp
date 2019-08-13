@@ -484,6 +484,7 @@ void CPU::push(char data){
     char highByte = 0x1F;
     memory->writeAddress(highByte << 8 | SP, data);
     SP = SP - 1;
+    //Make it wrap around to prevent overflow
 }
 
 void CPU::pushLittleEndian(short data){

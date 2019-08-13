@@ -14,6 +14,7 @@ class Memory{
     public:
     Memory(char* path);
     unsigned char readAddress(unsigned short address);
+    unsigned char readCHRAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
     void OAMDMA(char data);
