@@ -22,9 +22,13 @@ Cartridge::Cartridge(char *path)
     fread(CHR_ROM, header.chrSize*8192, 1, rom);
 }
 
-unsigned char Cartridge::read(unsigned short address)
+unsigned char Cartridge::readPRGAddress(unsigned short address)
 {
     return PRG_ROM[address];
+}
+
+unsigned char Cartridge::readCHRAddress(unsigned short address){
+    /* Have to add */
 }
 
 void Cartridge::write(unsigned short address, char value){

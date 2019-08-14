@@ -7,6 +7,7 @@
 //Implement the B flag
 //Delay through Cycles
 #include "nes.h"
+#include <thread>
     
 NES::NES(char* path){
     //add CPU code
@@ -17,10 +18,23 @@ NES::NES(char* path){
 
 
 void NES::start(){
-    while(true){
-        cpu->cycle();
-        cpu->printStatus();
-    }
+    auto cpuLoop = [](CPU* cpu){
+        while(true){
+            cpu->cycle();
+            cpu->printStatus();
+        }
+    };
+
+    auto ppuLoop = [](PPU* ppu){
+        while(true){
+            ppu->generateFrame();
+            ppu->displayFrame();
+        }
+    };
+    std::thread cpuThread(cpuLoop, cpu);
+    std::thread ppuThread(ppuLoop, ppu);
+    cpuThread.join();
+    ppuThread.join();
 }
 
 

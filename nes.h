@@ -18,7 +18,6 @@ class NES{
     unsigned short PC;
     bool IRQ, NMI;
     bool previousNMILevel;
-    unsigned char display [256][240]; //take care of x and y
     NES(char* path);
     void start();
 };

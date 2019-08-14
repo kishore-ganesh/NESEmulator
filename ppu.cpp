@@ -33,6 +33,14 @@ void PPU::writeAddress(unsigned short address, char value){
     if (address >= 0x3000 && address <= 0x3EFF){
         vram[address-0x1000] = value;
     }
+
+    if (address>=0x3F00&&address<=0x3F1F){
+        /*  retyurn pallete */
+    }
+
+    if(address >= 0x3520 && address <= 0x3FFF){
+        /* Return pallete -  */
+    }
 }
 
 
@@ -96,9 +104,63 @@ void PPU::writeRegister(Registers reg, char value){
         }
     }
 }
+
+short PPU::getNameTableAddress(){
+        char nameTableNumber = getRegister(PPUCTRL) & 0x03;
+        short baseAddress = 0x2000;
+        short address = baseAddress + ((nameTableNumber*4) << 8);
+        return 0x2000 + address; //check
+}
+
+short PPU::getBasePatternTableAddress(bool background){
+    char mask = 0x10;
+    if(!background){
+        mask = 0x01;
+    }
+    if(PPUCTRL&mask){
+        return 0x0000;
+    }
+    else{
+        return 0x1000;
+    }   
+}
+
+void PPU::generateFrame(){
+    short baseNameTableAddress = getNameTableAddress();
+    //check for enable rednering
+    for(short i = baseNameTableAddress; i<=baseNameTableAddress+960; i++){
+        char nameTableEntry = readAddress(i);
+        short basePatternTableAddress = getBasePatternTableAddress(true);
+        short attributeTableAddress = (i + 0x3C0+(i-baseNameTableAddress+1)%4);
+        char attributeEntry = readAddress(attributeTableAddress);
+
+        for(char j = 0; j < 8; j++){
+            short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
+            char upperTile = readAddress(patternAddress);
+            char lowerTile = readAddress(patternAddress+8);
+            for(char k = 0; k < 8; k++){
+                
+            }
+        }
+        
+        
+    }
+}
+
+
+void PPU::displayFrame(){
+
+}
 /*
 PPU CHR ROM should be mapped to the pattern tables
 We also need to check if it is CHR RAM instead
 
 PPU Scroll we need to implement such that it takes place next frame
+ */
+
+/*
+Check if PPU mapping is 
+Implement mirroring
+
+If NMI it is set, only then should you trigger NMI
  */

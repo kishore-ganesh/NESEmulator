@@ -14,7 +14,7 @@ unsigned char Memory::readAddress(unsigned short address){
     }
 
     else if(address>=0x2000&&address<=0x2007){
-        return ppu->readRegister(address - 0x2000);
+        return ppu->readRegister((Registers)(address - 0x2000));
         cout << "PPU access" <<endl;
     }
     // have mirroring
@@ -40,7 +40,7 @@ void Memory::writeAddress(unsigned short address, char value){
     //add for PPU registers
     
     else if(address >= 0x2000 && address <= 0x2007){
-        ppu->writeRegister(address-0x2000, value);
+        ppu->writeRegister((Registers)(address-0x2000), value);
     }
 
     // Have mirroring here
