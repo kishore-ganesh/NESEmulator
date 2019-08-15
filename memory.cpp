@@ -1,4 +1,5 @@
 #include "memory.h"
+#include<time.h>
 using std::cout;
 using std::endl;
 
@@ -26,6 +27,10 @@ unsigned char Memory::readAddress(unsigned short address){
         short prgRomAddress = address - 0x8000;
         return cartridge->readPRGAddress(prgRomAddress);
     }
+    timespec delay;
+    delay.tv_sec = 0;
+    delay.tv_nsec = 1000;
+    nanosleep(&delay, NULL);
 }
 
 
