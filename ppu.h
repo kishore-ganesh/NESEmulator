@@ -92,6 +92,7 @@ class PPU{
         { 160, 214, 228 },
         { 160, 162, 160 }
     };
+    char programPalletes[16];
     public:
     PPU(Memory* memory, EdgeInterrupt* NMI);
     char readAddress(unsigned short address);

@@ -9,10 +9,11 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
 
 char PPU::readAddress(unsigned short address)
 {
+    // std::cout << address << std::endl;
     if(address>=0x0000&&address<=0x1FFF){
         return memory->readCHRAddress(address);
     }
-    if (address >= 0x2000 && address <= 0x2EFF){
+    if (address >= 0x2000 && address <= 0x2FFF){
         return vram[address - 0x2000];
     }
 
@@ -20,10 +21,12 @@ char PPU::readAddress(unsigned short address)
         return vram[address-0x1000];
     }
     if (address>=0x3F00&&address<=0x3F1F){
+        return programPalletes[address-0x3F00];
         /*  retyurn pallete */
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
+        // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
     }
 }
@@ -34,10 +37,11 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
-        vram[address-0x1000] = value;
+        vram[address-0x3000] = value;
     }
 
     if (address>=0x3F00&&address<=0x3F1F){
+        programPalletes[address-0x3F00] = value;
         /*  retyurn pallete */
     }
 
@@ -136,9 +140,9 @@ void PPU::generateFrame(){
         short basePatternTableAddress = getBasePatternTableAddress(true);
         short baseAttributeTableAddress = i + 0x3C0; //check this, make this only one memory acces
         short attributeTableAddressOffset = (((i-baseNameTableAddress)%32)/2)+(i-baseNameTableAddress)/4;
-        char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+        unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
         char offset = ((i-baseNameTableAddress)%30) - (attributeTableAddressOffset - (i-baseNameTableAddress)/4)*2;
-        char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2);
+        unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2);
         for(char j = 0; j < 8; j++){
             short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
             char upperTile = readAddress(patternAddress);
@@ -147,14 +151,16 @@ void PPU::generateFrame(){
             for(char k = 0; k < 8; k++){
                 short palleteAddress = 0x3F00 + (attribute << 2) | ((upperTile & 0x01) << 1 )| (lowerTile & 0x01);    
                 char palleteIndex = readAddress(palleteAddress);
-                int x = k + (i%32)*8;
+                int x = k + ((i-baseNameTableAddress)%32)*8;
                 
-                int y = (i/32)*8+j;
+                int y = ((i-baseNameTableAddress)/32)*8+j;
                 setPixel(x, y, palletes[palleteIndex]); // need to refactor
             }
         }
     }
-    SDL_Delay(500); // temp
+    unsigned char status = getRegister(PPUSTATUS);
+    setRegister(PPUSTATUS, status|0x80);
+    SDL_Delay(50); // temp
     NMI->triggerInterrupt();
 }
 
@@ -163,6 +169,7 @@ RGB PPU::getPixel(int x, int y){
 }
 
 void PPU::setPixel(int x, int y, RGB value){
+    // std::cout << x << " " << y << std::endl;
     display[x][y] = value;
 }
 void PPU::displayFrame(){
@@ -173,6 +180,7 @@ void PPU::displayFrame(){
             SDL_RenderDrawPoint(renderer, x, y);
         }
     }
+    SDL_RenderPresent(renderer);
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables
