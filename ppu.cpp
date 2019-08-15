@@ -1,6 +1,7 @@
 #include "ppu.h"
-PPU::PPU(Memory* memory){
+PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->memory = memory;
+    this->NMI = NMI;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("NESEmulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, 0);
@@ -146,16 +147,23 @@ void PPU::generateFrame(){
             for(char k = 0; k < 8; k++){
                 short palleteAddress = 0x3F00 + (attribute << 2) | ((upperTile & 0x01) << 1 )| (lowerTile & 0x01);    
                 char palleteIndex = readAddress(palleteAddress);
-                display[i/32][i%32] // need to refactor
+                int x = k + (i%32)*8;
+                
+                int y = (i/32)*8+j;
+                setPixel(x, y, palletes[palleteIndex]); // need to refactor
             }
         }
-        
-        
     }
+    SDL_Delay(500); // temp
+    NMI->triggerInterrupt();
 }
 
 RGB PPU::getPixel(int x, int y){
     return display[x][y];
+}
+
+void PPU::setPixel(int x, int y, RGB value){
+    display[x][y] = value;
 }
 void PPU::displayFrame(){
     for(int x = 0; x < 256; x++){

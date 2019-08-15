@@ -9,6 +9,10 @@ CPU::CPU(Memory* memory){
     NMI.clearInterrupt(); //Make NMI a pointer
     IRQ = true;
 }
+
+EdgeInterrupt* CPU::getNMIPointer(){
+    return &NMI;
+}
 void CPU::setFlag(char mask, bool bit){
     P&=~mask;
     if(bit){
@@ -36,7 +40,7 @@ void CPU::printStatus(){
     getFlag(NEGATIVE),\
     getFlag(ZERO), \
     getFlag(CARRY), \
-    getFlag(OVERFLOW), \
+    getFlag(INTEGER_OVERFLOW), \
     getFlag(INT) \
     );
     printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI.checkInterrupt());
@@ -126,7 +130,7 @@ void CPU::processInstruction(unsigned char instruction){
         bool bit = (instruction & 0x20) >> 5;
         switch((instruction&0xC0)>>6){
             case 0x0: BRANCH(NEGATIVE, bit, data); break;
-            case 0x1: BRANCH(OVERFLOW, bit, data); break;
+            case 0x1: BRANCH(INTEGER_OVERFLOW, bit, data); break;
             case 0x2: BRANCH(CARRY, bit, data); break;
             case 0x3: BRANCH(ZERO, bit, data); break;
         }
@@ -295,7 +299,7 @@ void CPU::ADC(char data){
     setFlag(CARRY, carryBit);
     A+=data;
     checkValueFlags(A);
-    setFlag(OVERFLOW, overFlowBit); //fix this and have carry
+    setFlag(INTEGER_OVERFLOW, overFlowBit); //fix this and have carry
 }
 void CPU::SBC(char data){
     cout << "SBC" <<endl;
@@ -303,7 +307,7 @@ void CPU::SBC(char data){
     bool borrowBit = A >= data ? 1: 0;
     A-=data;
     checkValueFlags(A);
-    setFlag(OVERFLOW, overFlowBit);
+    setFlag(INTEGER_OVERFLOW, overFlowBit);
     setFlag(CARRY, borrowBit);
 }
 void CPU::STA(short int address){
@@ -426,7 +430,7 @@ void CPU::BIT(char data){
     negativeBit = data & 0x80;
     overflowBit = data & 0x70;
     setFlag(ZERO, data & A);
-    setFlag(OVERFLOW, overflowBit);
+    setFlag(INTEGER_OVERFLOW, overflowBit);
     setFlag(NEGATIVE, negativeBit);
 }
 
@@ -609,7 +613,7 @@ void CPU::TYA(){
 
 void CPU::CLV(){
     cout << "CLV" << endl;
-    setFlag(OVERFLOW, 0);
+    setFlag(INTEGER_OVERFLOW, 0);
 }
 
 void CPU::CLD(){

@@ -29,6 +29,7 @@ unsigned char Cartridge::readPRGAddress(unsigned short address)
 
 unsigned char Cartridge::readCHRAddress(unsigned short address){
     /* Have to add */
+    return CHR_ROM[address];
 }
 
 void Cartridge::write(unsigned short address, char value){

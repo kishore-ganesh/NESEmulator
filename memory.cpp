@@ -5,6 +5,11 @@ using std::endl;
 
 Memory::Memory(char* path){
     cartridge = new Cartridge(path);
+    this->ppu = ppu;
+}
+
+void Memory::setPPU(PPU* ppu){
+    this->ppu = ppu;
 }
 unsigned char Memory::readAddress(unsigned short address){
     if(address<=0x1FFF){

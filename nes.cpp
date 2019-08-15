@@ -11,21 +11,23 @@
     
 NES::NES(char* path){
     //add CPU code
+    
     memory = new Memory(path);
     cpu = new CPU(memory);
-    ppu = new PPU(memory);
+    ppu = new PPU(memory, cpu->getNMIPointer());
+    memory->setPPU(ppu);
+    
 }
 
-
 void NES::start(){
-    auto cpuLoop = [](CPU* cpu){
+    auto cpuLoop = [&](CPU* cpu){
         while(true){
             cpu->cycle();
             cpu->printStatus();
         }
     };
 
-    auto ppuLoop = [](PPU* ppu){
+    auto ppuLoop = [&](PPU* ppu){
         while(true){
             ppu->generateFrame();
             ppu->displayFrame();

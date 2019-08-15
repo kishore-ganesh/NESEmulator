@@ -13,6 +13,7 @@ class Memory{
     Cartridge* cartridge;
     public:
     Memory(char* path);
+    void setPPU(PPU* ppu);
     unsigned char readAddress(unsigned short address);
     unsigned char readCHRAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);

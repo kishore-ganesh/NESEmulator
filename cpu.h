@@ -7,13 +7,13 @@ class CPU{
     public:
     char A, X, Y, P, SP; //check check setting of stack pointer
     Memory* memory;
-    static enum masks{
+    enum masks{
         CARRY = 0x01,
         ZERO = 0x02,
         INT = 0x04,
        // DEC = 0x08,
         B = 0x10,
-        OVERFLOW = 0x20,
+        INTEGER_OVERFLOW = 0x20,
         NEGATIVE = 0x40
     } flagMask;
 
@@ -21,6 +21,7 @@ class CPU{
     EdgeInterrupt NMI;
     bool IRQ; // refactor
     CPU(Memory* memory);
+    EdgeInterrupt* getNMIPointer();
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
     void setFlag(char mask, bool bit);

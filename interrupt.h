@@ -1,3 +1,5 @@
+#ifndef INTERRUPT_INCLUDE
+#define INTERRUPT_INCLUDE
 struct EdgeInterrupt{
     bool status;
     bool prevStatus;
@@ -6,3 +8,4 @@ struct EdgeInterrupt{
     void clearInterrupt();
     bool checkInterrupt();
 };
+#endif
