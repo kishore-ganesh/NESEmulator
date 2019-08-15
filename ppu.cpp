@@ -1,7 +1,9 @@
 #include "ppu.h"
-
 PPU::PPU(Memory* memory){
     this->memory = memory;
+    SDL_Init(SDL_INIT_VIDEO);
+    window = SDL_CreateWindow("NESEmulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, 0);
 }
 
 char PPU::readAddress(unsigned short address)
@@ -131,15 +133,20 @@ void PPU::generateFrame(){
     for(short i = baseNameTableAddress; i<=baseNameTableAddress+960; i++){
         char nameTableEntry = readAddress(i);
         short basePatternTableAddress = getBasePatternTableAddress(true);
-        short attributeTableAddress = (i + 0x3C0+(i-baseNameTableAddress+1)%4);
-        char attributeEntry = readAddress(attributeTableAddress);
-
+        short baseAttributeTableAddress = i + 0x3C0; //check this, make this only one memory acces
+        short attributeTableAddressOffset = (((i-baseNameTableAddress)%32)/2)+(i-baseNameTableAddress)/4;
+        char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+        char offset = ((i-baseNameTableAddress)%30) - (attributeTableAddressOffset - (i-baseNameTableAddress)/4)*2;
+        char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2);
         for(char j = 0; j < 8; j++){
             short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
             char upperTile = readAddress(patternAddress);
             char lowerTile = readAddress(patternAddress+8);
+            
             for(char k = 0; k < 8; k++){
-                
+                short palleteAddress = 0x3F00 + (attribute << 2) | ((upperTile & 0x01) << 1 )| (lowerTile & 0x01);    
+                char palleteIndex = readAddress(palleteAddress);
+                display[i/32][i%32] // need to refactor
             }
         }
         
@@ -147,9 +154,17 @@ void PPU::generateFrame(){
     }
 }
 
-
+RGB PPU::getPixel(int x, int y){
+    return display[x][y];
+}
 void PPU::displayFrame(){
-
+    for(int x = 0; x < 256; x++){
+        for(int y = 0; y < 240; y++){
+            RGB pixel = getPixel(x, y);
+            SDL_SetRenderDrawColor(renderer, pixel.r, pixel.g, pixel.b, 1);
+            SDL_RenderDrawPoint(renderer, x, y);
+        }
+    }
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

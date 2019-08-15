@@ -1,6 +1,7 @@
 #ifndef PPU_INCLUDE
 #define PPU_INCLUDE
 #include "memory.h"
+#include <SDL2/SDL.h>
 class Memory; // why did forward declaration work
 enum Registers{
     PPUCTRL,
@@ -24,6 +25,8 @@ class PPU{
     char OAM[256];
     RGB display [256][240]; //take care of x and y
     Memory* memory;
+    SDL_Window* window;
+    SDL_Renderer* renderer;
     /*
     These are palletes used by the NES (taken verbatim from Blargg's palletes). Later we will add NTSC decoding to mirror what the NES actually
     does
@@ -102,8 +105,10 @@ class PPU{
     short getNameTableAddress();
     short getBasePatternTableAddress(bool background);
     void cycle();
+    RGB getPixel(int x, int y);
     void generateFrame();
     void displayFrame();
+    
 };
 
 /*
