@@ -135,21 +135,21 @@ short PPU::getBasePatternTableAddress(bool background){
 void PPU::generateFrame(){
     short baseNameTableAddress = getNameTableAddress();
     //check for enable rednering
-    for(short i = baseNameTableAddress; i<=baseNameTableAddress+960; i++){
-        char nameTableEntry = readAddress(i);
+    for(short i = baseNameTableAddress; i<baseNameTableAddress+960; i++){
+        unsigned char nameTableEntry = readAddress(i);
         short basePatternTableAddress = getBasePatternTableAddress(true);
-        short baseAttributeTableAddress = i + 0x3C0; //check this, make this only one memory acces
+        short baseAttributeTableAddress = baseAttributeTableAddress + 0x3C0; //check this, make this only one memory acces
         short attributeTableAddressOffset = (((i-baseNameTableAddress)%32)/2)+(i-baseNameTableAddress)/4;
         unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
-        char offset = ((i-baseNameTableAddress)%30) - (attributeTableAddressOffset - (i-baseNameTableAddress)/4)*2;
-        unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2);
+        unsigned char offset = ((i-baseNameTableAddress)%30) - (attributeTableAddressOffset - (i-baseNameTableAddress)/4)*2;
+        unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
         for(char j = 0; j < 8; j++){
             short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
             char upperTile = readAddress(patternAddress);
             char lowerTile = readAddress(patternAddress+8);
             
             for(char k = 0; k < 8; k++){
-                short palleteAddress = 0x3F00 + (attribute << 2) | ((upperTile & 0x01) << 1 )| (lowerTile & 0x01);    
+                short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile & 0x01) << 1 )| (upperTile & 0x01));    
                 char palleteIndex = readAddress(palleteAddress);
                 int x = k + ((i-baseNameTableAddress)%32)*8;
                 
@@ -160,7 +160,7 @@ void PPU::generateFrame(){
     }
     unsigned char status = getRegister(PPUSTATUS);
     setRegister(PPUSTATUS, status|0x80);
-    SDL_Delay(50); // temp
+    // SDL_Delay(50); // temp
     NMI->triggerInterrupt();
 }
 

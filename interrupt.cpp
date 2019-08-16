@@ -4,8 +4,8 @@ EdgeInterrupt::EdgeInterrupt(){
     clearInterrupt();
 }
 void EdgeInterrupt::triggerInterrupt(){
-    prevStatus = false;
-    status = true;
+    prevStatus = true;
+    status = false;
 }
 
 void EdgeInterrupt::clearInterrupt(){

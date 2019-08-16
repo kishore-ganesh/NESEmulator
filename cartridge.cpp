@@ -6,6 +6,7 @@ Cartridge::Cartridge(char *path)
     iNES_Header header;
     FILE *rom = fopen(path, "r");
     fread(&header, sizeof(header), 1, rom);
+    printHeader(header);
     if (header.flag[0] & 0x0004)
     {
         fseek(rom, 512, SEEK_CUR); //check this
@@ -20,6 +21,24 @@ Cartridge::Cartridge(char *path)
     }
 
     fread(CHR_ROM, header.chrSize*8192, 1, rom);
+}
+
+void Cartridge::printHeader(iNES_Header header){
+    printf(
+        "Cartridge program size is: %d\n\
+        CHR ROM Size is: %d\n\
+        Mirroring (0: Horizontal, 1: Vertical): %d\n\
+        PRG RAM present: %d\n\
+        Trainer present: %d\n\
+        Ignore mirroring: %d\n\
+        ",
+        header.prgSize,
+        header.chrSize,
+        (header.flag[0] & 0x01),
+        (header.flag[0] & 0x02) >> 1,
+        (header.flag[0] & 0x04) >> 2,
+        (header.flag[0] & 0x08) >> 3
+    );
 }
 
 unsigned char Cartridge::readPRGAddress(unsigned short address)

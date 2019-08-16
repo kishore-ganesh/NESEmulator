@@ -16,6 +16,7 @@ class Cartridge {
     unsigned char readPRGAddress(unsigned short address);
     unsigned char readCHRAddress(unsigned short address);
     void write(unsigned short address, char value);
+    void printHeader(iNES_Header header);
 };
 
 #endif

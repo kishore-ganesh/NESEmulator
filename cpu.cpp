@@ -3,7 +3,7 @@ using std::cout;
 using std::endl;
 CPU::CPU(Memory* memory){
     this->memory = memory;
-    PC = 0x8000;
+    PC = memory->readLittleEndian(0xFFFC);
     P = 0x34;
     SP = 0xFF;
     NMI.clearInterrupt(); //Make NMI a pointer
@@ -139,9 +139,10 @@ void CPU::processInstruction(unsigned char instruction){
         /* Check addressing modes */
         switch(bbb){
             case 0x0: {
+                cout << "(Indirect, X)" << endl;
                 PC = PC + 1;
-                address = memory->readLittleEndian(PC+X);
-                PC = PC + 1;
+                address = memory->readAddress(PC);
+                address = memory->readLittleEndian((address+X)&0x00FF);
                 data = memory->readAddress(address);
                 break;
             } 
@@ -158,11 +159,11 @@ void CPU::processInstruction(unsigned char instruction){
                 break;
             }
             case 0x4: {
-                cout << "(ABSOLUTE, Y)" << endl;
+                cout << "(Indirect, Y)" << endl;
                 PC = PC + 1;
-                short address = memory->readLittleEndian(PC)+Y;
-                PC = PC + 1;
-                data = memory->readAddress(address);
+                short address = memory->readAddress(PC);
+                address = memory->readLittleEndian(address) + Y;
+                data = memory->readAddress(address);                
                 break;
             }
             case 0x5: {
@@ -244,8 +245,8 @@ void CPU::processInstruction(unsigned char instruction){
         else{
             switch(aaa){
                 case 0x1: BIT(data); break;  //BIT 
-                case 0x2: JMP(address); break; //JMP
-                case 0x3: JMP_ABS(address); break; //JMP ABS
+                case 0x2: JMP_ABS(address); break; //JMP ABS
+                case 0x3: JMP(address); break; //JMP
                 case 0x4: STY(address); break; //STY
                 case 0x5: LDY(data); break; //LDY
                 case 0x6: CPY(data); break; //CPY
@@ -259,6 +260,7 @@ void CPU::processInstruction(unsigned char instruction){
 void CPU::cycle(){
     short address;
     if(NMI.checkInterrupt()){
+        cout << "NMI Interrupt occured" << endl;
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
@@ -448,7 +450,7 @@ void CPU::JMP(unsigned short address){
 
 void CPU::JMP_ABS(unsigned short address){
     cout << "JMP_ABS" << endl;
-    PC = address;
+    PC = address - 1;
 
     //check for page boundaries
 }
@@ -485,23 +487,25 @@ void CPU::BRANCH(masks flag, bool bit, char data){
     }
 }
 void CPU::push(char data){
-    char highByte = 0x1F;
-    memory->writeAddress(highByte << 8 | SP, data);
+    unsigned char highByte = 0x01;
+    short stackAddress = (highByte << 8) | (unsigned char)SP;
+    memory->writeAddress(stackAddress, data);
     SP = SP - 1;
     //Make it wrap around to prevent overflow
 }
 
 void CPU::pushLittleEndian(short data){
     char highByte = (data>>8);
-    char lowByte = (data&0x0F);
+    char lowByte = (data&0x00FF);
     push(highByte);
     push(lowByte);
 }
 
 char CPU::pop(){
-    char highByte = 0x1F;
+    unsigned char highByte = 0x01;
     SP = SP + 1;
-    char data = memory->readAddress(highByte << 8 | SP);
+    short stackAddress = (highByte << 8 )| (unsigned char)SP;
+    char data = memory->readAddress(stackAddress);
     return data;
 }
 
@@ -540,7 +544,7 @@ void CPU::RTI(){
 void CPU::RTS(){
     cout << "RTS" << endl;
     PC = popLittleEndian();
-    PC = PC + 1; //check this
+    // PC = PC + 1; //check this
 }    
 
 void CPU::PHP(){
