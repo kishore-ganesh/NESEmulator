@@ -58,7 +58,7 @@ void CPU::readImmediate(unsigned short& PC, char& data, unsigned short address){
 void CPU::readZeroPage(unsigned short& PC, char& data, unsigned short address){
     cout << "ZERO PAGE ";
     PC = PC + 1;
-    address = ((0x00)<<8)|memory->readAddress(PC);
+    address = memory->readAddress(PC&0x00FF);
     data = memory->readAddress(address);
 }
 
@@ -163,7 +163,7 @@ void CPU::processInstruction(unsigned char instruction){
             case 0x4: {
                 cout << "(Indirect, Y)" << endl;
                 PC = PC + 1;
-                short address = memory->readAddress(PC);
+                address = (memory->readAddress(PC)) & 0x00FF;
                 address = memory->readLittleEndian(address) + Y;
                 data = memory->readAddress(address);                
                 break;
@@ -173,11 +173,11 @@ void CPU::processInstruction(unsigned char instruction){
                 break;
             }
             case 0x6: { 
-                readAbsoluteX(PC, data, address, X);
+                readAbsoluteX(PC, data, address, Y);
                 break;
             }
             case 0x7: {
-                readAbsoluteX(PC, data, address, Y); /*read absolute Y */
+                readAbsoluteX(PC, data, address, X); /*read absolute Y */
                 break;
             }
         }
@@ -270,6 +270,7 @@ void CPU::cycle(){
         PC = address;
     }
     else if(!IRQ&&!getFlag(INT)){
+        cout << "Interrupt occured" << endl;
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
@@ -515,7 +516,7 @@ char CPU::pop(){
 }
 
 short CPU::popLittleEndian(){
-    short result = pop();
+    short result = (unsigned char) pop();
     result = (((unsigned char)pop() )<< 8) | result;
     return result;
 }
@@ -648,16 +649,19 @@ void CPU::TXS(){
 void CPU::TAX(){
     cout << "TAX" << endl;
     X = A;
+    checkValueFlags(X);
 }
 
 void CPU::TSX(){
     cout << "TSX" << endl;
     X = SP;
+    checkValueFlags(X);
 }
 
 void CPU::DEX(){
     cout << "DEX" << endl;
     X = X - 1;
+    checkValueFlags(X);
 }
 
 void CPU::NOP(){

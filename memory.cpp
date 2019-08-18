@@ -44,6 +44,10 @@ unsigned char Memory::readCHRAddress(unsigned short address){
 }
 
 void Memory::writeAddress(unsigned short address, char value){
+    printf("Writing to: %x\n",address);
+    if((address&0xFF00)==0x0100){
+        cout << "STACK WRITE" << endl;
+    }
     if(address <= 0x1FFF){
         memory[address%0x800] = value;
     }
