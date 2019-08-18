@@ -5,7 +5,8 @@
 
 class CPU{
     public:
-    char A, X, Y, P, SP; //check check setting of stack pointer
+    char A, X, Y, P; //check check setting of stack pointer
+    unsigned char SP;
     Memory* memory;
     enum masks{
         CARRY = 0x01,

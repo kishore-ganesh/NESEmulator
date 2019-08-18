@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     clearFlags(nes);
     nes.cpu->A = 0x8D;
     nes.cpu->BIT(0x8D);
-    if(!(nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE) && !nes.cpu->getFlag(CPU::OVERFLOW))){
+    if(!(nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE) && !nes.cpu->getFlag(CPU::INTEGER_OVERFLOW))){
         cout << "BIT ERROR" << endl;
     }
     
@@ -78,18 +78,39 @@ int main(int argc, char *argv[])
     }
     nes.cpu->JMP(0x0712);
 
-    if(nes.cpu->PC!=0x1312){
+    if(nes.cpu->PC!=0x1311){
         cout << "JMP normal error" << endl;
     }
 
     nes.cpu->memory->writeAddress(0x0700, 0x01);
     nes.cpu->memory->writeAddress(0x07FF, 0x14);
     nes.cpu->JMP(0x07FF);
-    if(nes.cpu->PC!=0x0114){
+    if(nes.cpu->PC!=0x0113){
         cout << "JMP page boundary error" << endl;
     }
 
+    char push_test[] = {0, 1, 2, 3, 4};
+    for(int i=0; i<5; i++){
+        nes.cpu->push(push_test[i]);
+    }
+    for(int i=4; i>=0; i--){
+        if(nes.cpu->pop()!=push_test[i]){
+            cout << "STACK TEST FAILED" << endl;
+            break;
+        }
+    }
 
+    nes.cpu->SP = 0x1F;
+    short push_test_short[] = {0, 1, 2,3, 4};
+    for(int i= 0; i<5; i++){
+        nes.cpu->pushLittleEndian(push_test_short[i]);
+    }
+    for(int i=4; i>=0; i--){
+        if(nes.cpu->popLittleEndian()!=push_test_short[i]){
+            cout << "STACK TEST FAILED" << endl;
+            break;
+        }
+    }
 
 
 

@@ -44,6 +44,7 @@ void CPU::printStatus(){
     getFlag(INT) \
     );
     printf("IRQ: %d, NMI: %d\n\n", IRQ, NMI.checkInterrupt());
+    
 }
 
 
@@ -73,8 +74,9 @@ void CPU::readAbsolute(unsigned short& PC, char& data, unsigned short &address){
 void CPU::readZeroPageX(unsigned short& PC, char& data, unsigned short& address, char X){
     cout << "ZEROPAGE X" ;
     PC = PC + 1;
-    address = PC + X;
-    data = memory->readAddress(PC+X);
+    address = memory->readAddress(PC)+ X;
+    address = memory->readAddress((0x00FF)&address);
+    data = memory->readAddress(address);
 }
 
 void CPU::readAbsoluteX(unsigned short &PC, char& data, unsigned short & address,char X){
@@ -296,18 +298,20 @@ void CPU::EOR(char data){
 }
 void CPU::ADC(char data){
     cout<< "ADC" << endl;
-    bool carryBit = (A + data) > 0xFF ? 1 : 0;
-    bool overFlowBit = (A + data > 0x7F || A + data < 0x80);
-    setFlag(CARRY, carryBit);
-    A+=data;
+    short result = A + data+getFlag(CARRY);
+    bool carryBit = result > 0xFF ? 1 : 0;
+    bool overFlowBit = (result > 0x7F || result < 0x80);
+    A = A + data + getFlag(CARRY);
     checkValueFlags(A);
+    setFlag(CARRY, carryBit);
     setFlag(INTEGER_OVERFLOW, overFlowBit); //fix this and have carry
 }
 void CPU::SBC(char data){
     cout << "SBC" <<endl;
-    bool overFlowBit = (A - data > 0x7F || A - data < 0x80);
-    bool borrowBit = A >= data ? 1: 0;
-    A-=data;
+    short result = A - data - !getFlag(CARRY);
+    bool overFlowBit = (result > 0x7F || result < 0x80);
+    bool borrowBit = result >= 0 ? 1: 0;
+    A = A - data - !getFlag(CARRY);
     checkValueFlags(A);
     setFlag(INTEGER_OVERFLOW, overFlowBit);
     setFlag(CARRY, borrowBit);
@@ -439,11 +443,11 @@ void CPU::BIT(char data){
 void CPU::JMP(unsigned short address){
     cout << "JMP" << endl;
     if(!((address&0x00FF)==0x00FF)){
-        PC = memory->readLittleEndian(address);
+        PC = memory->readLittleEndian(address) - 1;
     }
     else{
         short jumpTo = (memory->readAddress(address&0xFF00) << 8) | (memory->readAddress(address));
-        PC = jumpTo;
+        PC = jumpTo - 1 ;
     }
     
 }
@@ -483,7 +487,7 @@ void CPU::CPX(char data){
 void CPU::BRANCH(masks flag, bool bit, char data){
     cout << "BRANCH" << endl;
     if(getFlag(flag)==bit){
-        PC = PC + data - 2; //chedck this
+        PC = PC + data; //chedck this
     }
 }
 void CPU::push(char data){
@@ -491,6 +495,7 @@ void CPU::push(char data){
     short stackAddress = (highByte << 8) | (unsigned char)SP;
     memory->writeAddress(stackAddress, data);
     SP = SP - 1;
+    
     //Make it wrap around to prevent overflow
 }
 
@@ -511,7 +516,7 @@ char CPU::pop(){
 
 short CPU::popLittleEndian(){
     short result = pop();
-    result = (pop() << 8) | result;
+    result = (((unsigned char)pop() )<< 8) | result;
     return result;
 }
 
