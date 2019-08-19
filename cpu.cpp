@@ -542,7 +542,7 @@ void CPU::JSR(){
 void CPU::RTI(){
     cout << "RTI" << endl;
     P = pop();
-    PC = popLittleEndian();
+    PC = popLittleEndian() -1;
     IRQ = true;
     NMI.clearInterrupt();
 }

@@ -112,6 +112,19 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Render tests
+    // for(int i=0; i<256; i++){
+    //     for(int j=0; j<240; j++){
+    //         RGB red{255, 0, 0};
+    //         nes.ppu->setPixel(i, j, red);
+    //     }
+        
+    // }
+    // while(true){
+    //     nes.ppu->displayFrame();
+    // }
+    
+
 
 
 

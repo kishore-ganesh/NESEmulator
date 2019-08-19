@@ -87,27 +87,31 @@ char PPU::readRegister(Registers reg){
     return value;
 }
 
-void PPU::writeRegister(Registers reg, char value){
+void PPU::writeRegister(Registers reg, unsigned char value){
     setRegister(reg, value);
     switch(reg){
         case OAMDATA:{
             char address = getRegister(OAMADDR);
             setRegister(PPUADDR, address + 1);
+            break;
         }
         case PPUSCROLL: {
             char existingScroll = (scroll&0xFF00) >> 8;
             scroll = existingScroll | (value << 8);
             xscroll = existingScroll;
             yscroll = value; 
+            break;
         }
         case PPUADDR: {
             address = (address << 8) | value;
             address = (address%0x4000);
+            break;
         }
         case PPUDATA: {
             writeAddress(address, value);
             char increment = getIncrement();
             setRegister(PPUADDR, address + increment);
+            break;
         }
     }
 }
@@ -139,9 +143,10 @@ void PPU::generateFrame(){
         unsigned char nameTableEntry = readAddress(i);
         short basePatternTableAddress = getBasePatternTableAddress(true);
         short baseAttributeTableAddress = baseAttributeTableAddress + 0x3C0; //check this, make this only one memory acces
-        short attributeTableAddressOffset = (((i-baseNameTableAddress)%32)/2)+(i-baseNameTableAddress)/4;
+        short attributeNameTableAddress = ((i - baseNameTableAddress) % 32)/2 + (i-baseNameTableAddress)/4;
+        short attributeTableAddressOffset = (((attributeNameTableAddress)%32)/2)+(attributeNameTableAddress)/4;
         unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
-        unsigned char offset = ((i-baseNameTableAddress)%30) - (attributeTableAddressOffset - (i-baseNameTableAddress)/4)*2;
+        unsigned char offset = ((attributeNameTableAddress)%30) - (attributeTableAddressOffset - (attributeNameTableAddress)/4)*2;
         unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
         for(char j = 0; j < 8; j++){
             short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
@@ -154,7 +159,7 @@ void PPU::generateFrame(){
                 int x = k + ((i-baseNameTableAddress)%32)*8;
                 
                 int y = ((i-baseNameTableAddress)/32)*8+j;
-                setPixel(x, y, palletes[palleteIndex]); // need to refactor
+                setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
             }
         }
     }

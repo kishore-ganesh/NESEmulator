@@ -22,7 +22,8 @@ struct RGB{
 class PPU{
     char vram[2*1024];
     char registers[8];
-    short scroll, address;
+    short scroll;
+    unsigned short address;
     char xscroll, yscroll;
     char OAM[256];
     RGB display [256][240]; //take care of x and y
@@ -105,7 +106,7 @@ class PPU{
     an operation, unlike get register, which just gets the register without doing anything PPU specific
      */
     char readRegister(Registers reg);
-    void writeRegister(Registers reg, char value);
+    void writeRegister(Registers reg, unsigned char value);
     short getNameTableAddress();
     short getBasePatternTableAddress(bool background);
     void cycle();
