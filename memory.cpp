@@ -15,9 +15,9 @@ unsigned char Memory::readAddress(unsigned short address){
     if(address<=0x1FFF){
         return memory[address%(0x0800)];
     }
-    else if(address==0x2002){
-        return 0x80;
-    }
+    // else if(address==0x2002){
+    //     return 0x80;
+    // }
 
     else if(address>=0x2000&&address<=0x2007){
         return ppu->readRegister((Registers)(address - 0x2000));

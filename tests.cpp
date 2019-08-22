@@ -34,14 +34,14 @@ int main(int argc, char *argv[])
     nes.cpu->setFlag(CPU::CARRY, 1);
     // ROR Test- with accumulator
     nes.cpu->A = 0x1A;
-    nes.cpu->ROR('0', nes.cpu->A, true);
+    nes.cpu->ROR(nes.cpu->A, true);
     if (!(nes.cpu->A == (char)0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
-        cout << "ROR Error\n";
+        cout << "ROR Error\n"; 
     clearFlags(nes);    
     nes.cpu->memory->writeAddress(0x0712, 0x1A);
-    nes.cpu->ROR(0x1A, 0x0712, false);
-
-    if (!(nes.cpu->memory->readAddress(0x0712) == (char)0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
+    nes.cpu->setFlag(CPU::CARRY, 1);
+    nes.cpu->ROR(0x0712, false);
+    if (!(nes.cpu->memory->readAddress(0x0712) == 0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
         cout << "ROR Error\n";
     clearFlags(nes);
     nes.cpu->checkValueFlags(-1);
@@ -113,16 +113,23 @@ int main(int argc, char *argv[])
     }
 
     // Render tests
-    // for(int i=0; i<256; i++){
-    //     for(int j=0; j<240; j++){
-    //         RGB red{255, 0, 0};
-    //         nes.ppu->setPixel(i, j, red);
-    //     }
+    for(int i=0; i<256; i++){
+        for(int j=0; j<240; j++){
+            RGB red{255, 0, 0};
+            nes.ppu->setPixel(i, j, red);
+        }
         
-    // }
+    }
     // while(true){
     //     nes.ppu->displayFrame();
     // }
+
+    nes.cpu->A = -1;
+    nes.cpu->LSR(0, true);
+    if(nes.cpu->A!=0x7F){
+        cout << "LSR sign error" << endl;
+    }
+
     
 
 

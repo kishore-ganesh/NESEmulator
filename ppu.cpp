@@ -1,4 +1,12 @@
 #include "ppu.h"
+
+char getOffset(char r, char c){
+    char sum = r + c;
+    if(r==1){
+        sum+=1;
+    }
+    return sum;
+}
 PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->memory = memory;
     this->NMI = NMI;
@@ -10,6 +18,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
 char PPU::readAddress(unsigned short address)
 {
     // std::cout << address << std::endl;
+    address = (address % 0x4000);
     if(address>=0x0000&&address<=0x1FFF){
         return memory->readCHRAddress(address);
     }
@@ -26,13 +35,15 @@ char PPU::readAddress(unsigned short address)
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
+        return  programPalletes[(address- 0x3520) % 0x20];
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
     }
 }
 
 void PPU::writeAddress(unsigned short address, char value){
-    if (address >= 0x2000 && address <= 0x2EFF){
+    address = (address%0x4000);
+    if (address >= 0x2000 && address <= 0x2FFF){
         vram[address - 0x2000] = value;
     }
 
@@ -46,6 +57,7 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
+        programPalletes[(address-0x3F20)%0x20] = value;
         /* Return pallete -  */
     }
 }
@@ -60,7 +72,7 @@ void PPU::setRegister(Registers reg, char value){
 }
 
 char PPU::getIncrement(){
-    if(PPUCTRL&0x02){
+    if(PPUCTRL&0x04){
         return 32;
     }
     return 1;
@@ -77,9 +89,11 @@ char PPU::readRegister(Registers reg){
             return OAM[value]; 
         }
         case PPUDATA: {
+            printf("READING FROM PPU DATA\n");
             char increment = getIncrement();
-            char address = getRegister(PPUADDR);
-            setRegister(PPUADDR,address+increment);
+            char currentAddress = getRegister(PPUADDR);
+            setRegister(PPUADDR,currentAddress+increment);
+            address+=increment;
             break;
         }
     }
@@ -105,12 +119,15 @@ void PPU::writeRegister(Registers reg, unsigned char value){
         case PPUADDR: {
             address = (address << 8) | value;
             address = (address%0x4000);
+            printf("PPU ADDRESS NOW: %x\n", address);
             break;
         }
         case PPUDATA: {
+            printf("WRITING TO PPU DATA: %x\n", address);
             writeAddress(address, value);
             char increment = getIncrement();
             setRegister(PPUADDR, address + increment);
+            address+=increment;
             break;
         }
     }
@@ -120,13 +137,13 @@ short PPU::getNameTableAddress(){
         char nameTableNumber = getRegister(PPUCTRL) & 0x03;
         short baseAddress = 0x2000;
         short address = baseAddress + ((nameTableNumber*4) << 8);
-        return 0x2000 + address; //check
+        return address; //check
 }
 
 short PPU::getBasePatternTableAddress(bool background){
     char mask = 0x10;
     if(!background){
-        mask = 0x01;
+        mask = 0x08;
     }
     if(PPUCTRL&mask){
         return 0x0000;
@@ -143,18 +160,27 @@ void PPU::generateFrame(){
         unsigned char nameTableEntry = readAddress(i);
         short basePatternTableAddress = getBasePatternTableAddress(true);
         short baseAttributeTableAddress = baseAttributeTableAddress + 0x3C0; //check this, make this only one memory acces
-        short attributeNameTableAddress = ((i - baseNameTableAddress) % 32)/2 + (i-baseNameTableAddress)/4;
-        short attributeTableAddressOffset = (((attributeNameTableAddress)%32)/2)+(attributeNameTableAddress)/4;
+        short attributeNameTableAddress = ((i - baseNameTableAddress) % 32)/2 + ((i-baseNameTableAddress)/64)*16;
+        short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
         unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
-        unsigned char offset = ((attributeNameTableAddress)%30) - (attributeTableAddressOffset - (attributeNameTableAddress)/4)*2;
+
+        char r, c;
+        r = ((attributeNameTableAddress/16)&0x01)?1:0;
+        c = (attributeNameTableAddress&0x01)?1:0;
+        unsigned char offset = getOffset(r, c);
         unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
         for(char j = 0; j < 8; j++){
             short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
-            char upperTile = readAddress(patternAddress);
-            char lowerTile = readAddress(patternAddress+8);
+            unsigned char upperTile = readAddress(patternAddress);
+            unsigned char lowerTile = readAddress(patternAddress+8);
             
             for(char k = 0; k < 8; k++){
-                short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile & 0x01) << 1 )| (upperTile & 0x01));    
+                short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
+                if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
+                    palleteAddress = 0x3F00; // check this
+                }
+                upperTile<<=1;
+                lowerTile<<=1; 
                 char palleteIndex = readAddress(palleteAddress);
                 int x = k + ((i-baseNameTableAddress)%32)*8;
                 
@@ -165,6 +191,9 @@ void PPU::generateFrame(){
     }
     unsigned char status = getRegister(PPUSTATUS);
     setRegister(PPUSTATUS, status|0x80);
+    /*
+        Add sprite code here
+     */
     // SDL_Delay(50); // temp
     NMI->triggerInterrupt();
 }
