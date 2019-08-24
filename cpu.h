@@ -5,7 +5,7 @@
 
 class CPU{
     public:
-    char A, X, Y, P; //check check setting of stack pointer
+    unsigned char A, X, Y, P; //check check setting of stack pointer
     unsigned char SP;
     Memory* memory;
     enum masks{
@@ -32,8 +32,8 @@ class CPU{
     void readImmediate(unsigned short& PC, unsigned short &address);
     void readZeroPage(unsigned short& PC, unsigned short &address);
     void readAbsolute(unsigned short& PC, unsigned short &address);
-    void readZeroPageX(unsigned short& PC, unsigned short& address, char X);
-    void readAbsoluteX(unsigned short &PC, unsigned short & address,char X);
+    void readZeroPageX(unsigned short& PC, unsigned short& address, unsigned char X);
+    void readAbsoluteX(unsigned short &PC, unsigned short & address,unsigned char X);
     void processInstruction(unsigned char instruction);
     void cycle();
     void OAMDMA(char data);

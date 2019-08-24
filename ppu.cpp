@@ -15,7 +15,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     renderer = SDL_CreateRenderer(window, -1, 0);
 }
 
-char PPU::readAddress(unsigned short address)
+unsigned char PPU::readAddress(unsigned short address)
 {
     // std::cout << address << std::endl;
     address = (address % 0x4000);
@@ -63,7 +63,7 @@ void PPU::writeAddress(unsigned short address, char value){
 }
 
 
-char PPU::getRegister(Registers reg){
+unsigned char PPU::getRegister(Registers reg){
     return registers[reg];
 }
 
@@ -78,8 +78,8 @@ char PPU::getIncrement(){
     return 1;
 }
 
-char PPU::readRegister(Registers reg){
-    char value = getRegister(reg);
+unsigned char PPU::readRegister(Registers reg){
+    unsigned char value = getRegister(reg);
     switch(reg){
         case PPUSTATUS: {
             setRegister(reg, value & 0x7F);
@@ -91,7 +91,7 @@ char PPU::readRegister(Registers reg){
         case PPUDATA: {
             printf("READING FROM PPU DATA\n");
             char increment = getIncrement();
-            char currentAddress = getRegister(PPUADDR);
+            unsigned char currentAddress = getRegister(PPUADDR);
             setRegister(PPUADDR,currentAddress+increment);
             address+=increment;
             break;
@@ -180,6 +180,7 @@ void PPU::generateFrame(){
                     palleteAddress = 0x3F00; // check this
                 }
                 upperTile<<=1;
+
                 lowerTile<<=1; 
                 char palleteIndex = readAddress(palleteAddress);
                 int x = k + ((i-baseNameTableAddress)%32)*8;

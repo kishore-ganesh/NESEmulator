@@ -68,14 +68,14 @@ void CPU::readAbsolute(unsigned short& PC, unsigned short &address){
 }
 
 /* ZERO PAGE, X: X provided since in two instructions the X changes to Y */
-void CPU::readZeroPageX(unsigned short& PC, unsigned short& address, char X){
+void CPU::readZeroPageX(unsigned short& PC, unsigned short& address, unsigned char X){
     cout << "ZEROPAGE X" ;
     PC = PC + 1;
     address = (memory->readAddress(PC)+ X)&0x00FF;
     // address = memory->readAddress((0x00FF)&address);
 }
 
-void CPU::readAbsoluteX(unsigned short &PC, unsigned short & address,char X){
+void CPU::readAbsoluteX(unsigned short &PC, unsigned short & address,unsigned char X){
     cout <<"ABSOLUTE X ";
     PC = PC + 1;
     address = memory->readLittleEndian(PC) + X;
@@ -204,7 +204,7 @@ void CPU::processInstruction(unsigned char instruction){
                 break;
             } 
             case 0x5: {
-                if(aaa==0x4||aaa==0x5){   //check mask
+                if((aaa==0x4||aaa==0x5)&&cc==0x02){   //check mask
                     readZeroPageX(PC, address, Y);
                 }
                 else{
@@ -213,7 +213,7 @@ void CPU::processInstruction(unsigned char instruction){
                 break;
             }
             case 0x7: {
-                if(aaa==0x5){
+                if(aaa==0x5&&cc==0x02){
                     readAbsoluteX(PC, address, Y);
                 }
                 else{
@@ -317,13 +317,13 @@ void CPU::STA(unsigned short address){
     memory->writeAddress(address, A);  // check this
 }
 void CPU::LDA(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout << "LDA" <<endl;
     A = data; //check if flag is to be set here
     checkValueFlags(A);
 }
 void CPU::CMP(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout << "CMP" << endl;
     bool borrowBit = A >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
@@ -340,10 +340,10 @@ void CPU::ASL(unsigned short address, bool accumulator){
         
     }
     else{
-        char data = memory->readAddress(address);
+        unsigned char data = memory->readAddress(address);
         carryBit = (data & 0x80) >> 7;
         memory->writeAddress(address, data << 1);
-        checkValueFlags(data);
+        checkValueFlags(data << 1);
     }
     setFlag(CARRY, carryBit);
     cout << "ASL" <<endl;
@@ -359,7 +359,7 @@ void CPU::ROL(unsigned short address, bool accumulator){
         checkValueFlags(A);
     }
     else{
-        char data = memory->readAddress(address);
+        unsigned char data = memory->readAddress(address);
         carryBit = (data & 0x8F) >> 7;
         data = data << 1;
         data&= 0xFE;
@@ -378,7 +378,7 @@ void CPU::LSR(unsigned short address, bool accumulator){
         checkValueFlags(A);
     }
     else{
-        char data = memory->readAddress(address);
+        unsigned char data = memory->readAddress(address);
         nextCarryBit = data & 0x01;
         data = (unsigned char)data >> 1;
         memory->writeAddress(address, data);
@@ -398,7 +398,7 @@ void CPU::ROR(unsigned short address, bool accumulator){
         checkValueFlags(A);
     }
     else{
-        char data = memory->readAddress(address);
+        unsigned char data = memory->readAddress(address);
         nextCarryBit = data & 0x01;
         data = data >> 1;
         data &= 0x7F;
@@ -415,19 +415,19 @@ void CPU::STX(unsigned short address, bool accumulator){
 }
 
 void CPU::LDX(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout<< "LDX" <<endl;
     X = data; //check if flag to be set here
     checkValueFlags(X);
 }
 void CPU::DEC(unsigned short address, bool accumulator){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     memory->writeAddress(address, data - 1);
     checkValueFlags(data -1);
     cout << "DEC" <<endl;
 }
 void CPU::INC(unsigned short address, bool accumulator){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     memory->writeAddress(address, data + 1);
     checkValueFlags(data + 1);
     cout << "INC" << endl;
@@ -436,7 +436,7 @@ void CPU::INC(unsigned short address, bool accumulator){
 void CPU::BIT(unsigned short address){
     // Check for immediate instruction
     cout << "BIT" << endl;
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     bool zeroBit, overflowBit, negativeBit;
     zeroBit = data & A > 0 ? 1 : 0;
     negativeBit = data & 0x80;
@@ -471,7 +471,7 @@ void CPU::STY(unsigned short address){
 }
 
 void CPU::LDY(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout << "LDY" << endl;
     Y = data;
     checkValueFlags(data);
@@ -479,14 +479,14 @@ void CPU::LDY(unsigned short address){
 
 void CPU::CPY(unsigned short address){
     cout << "CPY" << endl;
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     bool borrowBit = Y >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(Y - data);
 
 }
 void CPU::CPX(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout << "CPX" << endl;
     bool borrowBit = X >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
