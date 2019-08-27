@@ -291,7 +291,7 @@ void CPU::EOR(unsigned short address){
     checkValueFlags(A);
 }
 void CPU::ADC(unsigned short address){
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     cout<< "ADC" << endl;
     short result = A + data+getFlag(CARRY);
     bool carryBit = result > 0xFF ? 1 : 0;
@@ -303,7 +303,7 @@ void CPU::ADC(unsigned short address){
 }
 void CPU::SBC(unsigned short address){
     cout << "SBC" <<endl;
-    char data = memory->readAddress(address);
+    unsigned char data = memory->readAddress(address);
     short result = A - data - !getFlag(CARRY);
     bool overFlowBit = (result > 127 || result < -128);
     bool borrowBit = result >= 0 ? 1: 0;
@@ -637,7 +637,7 @@ void CPU::CLV(){
 }
 
 void CPU::CLD(){
-    cout << "CLD" << endl;
+    cout << "CLD" << endl;  
 }
 
 

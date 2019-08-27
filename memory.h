@@ -18,7 +18,7 @@ class Memory{
     unsigned char readCHRAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
-    void OAMDMA(char data);
+    void OAMDMA(unsigned char data);
 };
 
 #endif

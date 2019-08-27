@@ -74,7 +74,7 @@ short Memory::readLittleEndian(unsigned short address){
     return data;
 }
 
-void Memory::OAMDMA(char highByte){
+void Memory::OAMDMA(unsigned char highByte){
     for(unsigned short i=0x00; i<=0xFF; i++){
         printf("%d\n", i);
         char data = readAddress((highByte<<8) | i); //Check that OAM DMA increases OAM Addresses

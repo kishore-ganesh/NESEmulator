@@ -91,8 +91,8 @@ unsigned char PPU::readRegister(Registers reg){
         case PPUDATA: {
             printf("READING FROM PPU DATA\n");
             char increment = getIncrement();
-            unsigned char currentAddress = getRegister(PPUADDR);
-            setRegister(PPUADDR,currentAddress+increment);
+            // unsigned char currentAddress = getRegister(PPUADDR);
+            // setRegister(PPUADDR,currentAddress+increment);
             address+=increment;
             break;
         }
@@ -126,7 +126,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             printf("WRITING TO PPU DATA: %x\n", address);
             writeAddress(address, value);
             char increment = getIncrement();
-            setRegister(PPUADDR, address + increment);
+            // setRegister(PPUADDR, address + increment);
             address+=increment;
             break;
         }
