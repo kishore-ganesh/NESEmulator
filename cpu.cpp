@@ -262,7 +262,7 @@ void CPU::processInstruction(unsigned char instruction){
     
 }
 int CPU::cycle(){
-    cycles = 1;
+    cycles = 0;
     short address;
     if(NMI.checkInterrupt()){
         cout << "NMI Interrupt occured" << endl;
@@ -551,6 +551,7 @@ void CPU::BRK(){
     IRQ = false;
     pushLittleEndian(PC+2);
     push(P);
+    cycles+=1;
 }
 
 void CPU::JSR(){
@@ -569,125 +570,149 @@ void CPU::RTI(){
     PC = popLittleEndian() -1;
     IRQ = true;
     NMI.clearInterrupt();
+    cycles+=1;
 }
 
 void CPU::RTS(){
     cout << "RTS" << endl;
     PC = popLittleEndian();
+    cycles+=1;
     // PC = PC + 1; //check this
 }    
 
 void CPU::PHP(){
     cout << "PHP" << endl;
     push(P);
+    cycles+=1;
 }
 
 void CPU::PLP(){
     cout << "PLP" << endl;
     P = pop();
+    cycles+=1;
 }
 
 void CPU::PHA(){
     cout << "PHA" << endl;
     push(A);
+    cycles+=1;
 }
 
 void CPU::PLA(){
     cout << "PLA" << endl;
     A = pop();
+    cycles+=1;
 }
 
 void CPU::DEY(){
     cout << "DEY" << endl;
     Y = Y - 1;
     checkValueFlags(Y);
+    cycles+=1;
 }
 
 void CPU::TAY(){
     cout << "TAY" << endl;
     Y = A;
     checkValueFlags(Y);
+    cycles+=1;
 }
 
 void CPU::INY(){
     cout << "INY" << endl;
     Y = Y + 1;
     checkValueFlags(Y);
+    cycles+=1;
 }
 
 void CPU::INX(){
     cout << "INX" << endl;
     X = X + 1;
     checkValueFlags(X);
+    cycles+=1;
 }
 
 void CPU::CLC(){
     cout << "CLC" << endl;
     setFlag(CARRY, 0);
+    cycles+=1;
 }
 void CPU::SEC(){
     cout << "SEC" << endl;
     setFlag(CARRY, 1);
+    cycles+=1;
 }
 void CPU::CLI(){
     cout << "CLI" << endl;
     setFlag(INT, 0);
+    cycles+=1;
 }
 
 void CPU::SEI(){
     cout << "SEI" << endl;
     setFlag(INT, 1);
+    cycles+=1;
 }
 
 void CPU::TYA(){
     cout << "TYA" << endl;
     A = Y;
     checkValueFlags(A);
+    cycles+=1;
 }   
 
 void CPU::CLV(){
     cout << "CLV" << endl;
     setFlag(INTEGER_OVERFLOW, 0);
+    cycles+=1;
 }
 
 void CPU::CLD(){
     cout << "CLD" << endl;  
+    cycles+=1;
 }
 
 
 void CPU::SED(){
     cout << "SED" << endl;
+    cycles+=1;
 }
 
 void CPU::TXA(){
     cout << "TXA" << endl;
     A = X;
     checkValueFlags(A);
+    cycles+=1;
 }
 
 void CPU::TXS(){
     cout << "TXS" << endl;
     SP = X;
+    cycles+=1;
 }
 
 void CPU::TAX(){
     cout << "TAX" << endl;
     X = A;
     checkValueFlags(X);
+    cycles+=1;
 }
 
 void CPU::TSX(){
     cout << "TSX" << endl;
     X = SP;
     checkValueFlags(X);
+    cycles+=1;
 }
 
 void CPU::DEX(){
     cout << "DEX" << endl;
     X = X - 1;
     checkValueFlags(X);
+    cycles+=1;
 }
 
 void CPU::NOP(){
     cout << "NOP" << endl; 
+    cycles+=1;
 }

@@ -11,6 +11,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->memory = memory;
     this->NMI = NMI;
     this->cyclesLeft = 0;
+    this->currentCycle = 0;
     this->currentScanline = -1;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("NESEmulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN);
@@ -136,10 +137,10 @@ void PPU::writeRegister(Registers reg, unsigned char value){
 }
 
 short PPU::getNameTableAddress(){
-        char nameTableNumber = getRegister(PPUCTRL) & 0x03;
-        short baseAddress = 0x2000;
-        short address = baseAddress + ((nameTableNumber*4) << 8);
-        return address; //check
+    char nameTableNumber = getRegister(PPUCTRL) & 0x03;
+    short baseAddress = 0x2000;
+    short address = baseAddress + ((nameTableNumber*4) << 8);
+    return address; //check
 }
 
 short PPU::getBasePatternTableAddress(bool background){
@@ -155,6 +156,11 @@ short PPU::getBasePatternTableAddress(bool background){
     }   
 }
 
+bool PPU::shouldInterrupt(){
+    unsigned char value = getRegister(PPUCTRL);
+    return value & 0x80;
+}
+
 void PPU::addCycles(int cycles){
     currentCycle+=cycles;
     cyclesLeft-=cycles;
@@ -163,6 +169,7 @@ void PPU::addCycles(int cycles){
 void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
+    addCycles(8);
     short baseNameTableAddress = getNameTableAddress();
     unsigned char nameTableEntry = readAddress(tileNumber+baseNameTableAddress+(currentScanline/8)*32);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
@@ -182,14 +189,18 @@ void PPU::fetchTile(int tileNumber){
     lowerPattern|=(readAddress(patternAddress+8)) << 8;
 }
 
-void PPU::generateFrame(){
-
+void PPU::generateFrame(int cycles){
+    cyclesLeft += cycles;
+    printf("CURRENT CYCLE: %d, CYCLES LEFT: %d\n", currentCycle, cyclesLeft);
     if(currentCycle==0){
         if(cyclesLeft>=1){
             addCycles(1);
+            renderFlag = false;
         }
+        else 
+            return;
     }
-    currentCycle = 1;
+   // currentCycle = 1;
     if(currentCycle>=1&&currentCycle<=256){
         // if(currentScanline==-1){
         //     // fetch first two tiles into pattern register
@@ -197,8 +208,8 @@ void PPU::generateFrame(){
                 
         //     }
         // } // Add at the end, initialize -1 as currentScanline
-        if(currentScanline!=-1){
-            for(int i = 2 ; i <34; i++){
+        if(currentScanline!=-1&&currentScanline<240){
+            for(int i = (currentCycle/8)+2 ; i <34; i++){
                 unsigned char upperTile = upperPattern&0x00FF;
                 unsigned char lowerTile = lowerPattern&0x00FF;
                 for(int patternBit = 0; patternBit < 8; patternBit++){
@@ -215,27 +226,76 @@ void PPU::generateFrame(){
                     setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
                 }
                 if(i<32){
-                    fetchTile(i);
+                    if (cyclesLeft>=8){
+                        fetchTile(i);
+                    }
+                    else 
+                        return;
 
                     //sHIFT RIGHT anyways
+                }
+                else{
+                    if(cyclesLeft>=8){
+                        addCycles(8);
+                    }
+                    else{
+                        return;
+                    }
                 }   
+            }
+            renderFlag = true;
+        }
+        else {
+            if(currentScanline>=240){
+                    if (currentScanline == 241){
+                        unsigned char status = getRegister(PPUSTATUS);
+                        setRegister(PPUSTATUS, status|0x80);
+                        if(shouldInterrupt()){
+                            NMI->triggerInterrupt();    
+                        }    
+                    }
+                    if (cyclesLeft>=341){
+                        addCycles(341);
+                        currentCycle = 0;
+                    }
+                    else {
+                        return;
+                    }
             }
         }
         currentScanline+=1;
-        currentScanline=currentScanline==240?-1:currentScanline;
-        fetchTile(0);
-        fetchTile(1);    
+        if(currentScanline==261){
+            currentScanline = -1;
+            unsigned char status = getRegister(PPUSTATUS);
+            setRegister(PPUSTATUS, status&0x7F);
+        }
         // fetch nextScanlineData
     }
     //check for enable rednering
-    
-    unsigned char status = getRegister(PPUSTATUS);
-    setRegister(PPUSTATUS, status|0x80);
-    /*
-        Add sprite code here
-     */
-    // SDL_Delay(50); // temp
-    NMI->triggerInterrupt();
+    if (currentCycle==257){
+        if (cyclesLeft>=64){
+            addCycles(64);
+        }
+        else{
+            return;
+        } 
+    }
+    if (currentCycle==321){
+        if (cyclesLeft>=8){
+            fetchTile(0);
+        }
+    }
+    if(currentCycle==329){
+        if(cyclesLeft>=8){
+            fetchTile(1);  
+        }
+    }
+    if(currentCycle==337){
+        if (cyclesLeft>=4){
+            addCycles(4);
+            currentCycle = 0;
+        }
+    }
 }
 
 RGB PPU::getPixel(int x, int y){
@@ -255,6 +315,9 @@ void PPU::displayFrame(){
         }
     }
     SDL_RenderPresent(renderer);
+}
+bool PPU::shouldRender(){
+    return renderFlag && currentScanline == 240;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

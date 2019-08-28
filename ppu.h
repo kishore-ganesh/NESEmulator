@@ -20,6 +20,7 @@ struct RGB{
     unsigned char r, g, b;
 };
 class PPU{
+    bool renderFlag;
     char vram[2*1024];
     char registers[8];
     short scroll;
@@ -41,6 +42,7 @@ class PPU{
     These are palletes used by the NES (taken verbatim from Blargg's palletes). Later we will add NTSC decoding to mirror what the NES actually
     does
      */
+
     RGB palletes[64] = {
         { 124,124,124},
         { 0,0,252},
@@ -126,11 +128,13 @@ class PPU{
     void writeRegister(Registers reg, unsigned char value);
     short getNameTableAddress();
     short getBasePatternTableAddress(bool background);
+    bool shouldInterrupt();
     void cycle();
     RGB getPixel(int x, int y);
     void setPixel(int x, int y, RGB value);
-    void generateFrame();
+    void generateFrame(int cycles);
     void displayFrame();
+    bool shouldRender();
     
 };
 

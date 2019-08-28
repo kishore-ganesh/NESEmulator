@@ -20,29 +20,31 @@ NES::NES(char* path){
 }
 
 void NES::start(){
-    // while(true){
-    //     int cpuCycles = cpu->cycle();
-    //     cpu->printStatus();
-    //     // ppu->generateFrame();
-    //     // ppu->displayFrame();
-    // }
-    auto cpuLoop = [&](CPU* cpu){
-        while(true){
-            cpu->cycle();
-            cpu->printStatus();
+    while(true){
+        int cpuCycles = cpu->cycle();
+        cpu->printStatus();
+        ppu->generateFrame(cpuCycles*3);
+        if(ppu->shouldRender()){
+            ppu->displayFrame();    
         }
-    };
+    }
+    // auto cpuLoop = [&](CPU* cpu){
+    //     while(true){
+    //         cpu->cycle();
+    //         cpu->printStatus();
+    //     }
+    // };
 
-    auto ppuLoop = [&](PPU* ppu){
-        while(true){
-            ppu->generateFrame();
-            ppu->displayFrame();
-        }
-    };
-    std::thread cpuThread(cpuLoop, cpu);
-    std::thread ppuThread(ppuLoop, ppu);
-    cpuThread.join();
-    ppuThread.join();
+    // auto ppuLoop = [&](PPU* ppu){
+    //     while(true){
+    //         ppu->generateFrame();
+    //         ppu->displayFrame();
+    //     }
+    // };
+    // std::thread cpuThread(cpuLoop, cpu);
+    // std::thread ppuThread(ppuLoop, ppu);
+    // cpuThread.join();
+    // ppuThread.join();
 }
 
 
