@@ -169,7 +169,6 @@ void PPU::addCycles(int cycles){
 void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
-    addCycles(8);
     short baseNameTableAddress = getNameTableAddress();
     unsigned char nameTableEntry = readAddress(tileNumber+baseNameTableAddress+(currentScanline/8)*32);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
@@ -183,9 +182,7 @@ void PPU::fetchTile(int tileNumber){
     unsigned char offset = getOffset(r, c);
     attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
     short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
-    upperPattern>>=8;
     upperPattern|=(readAddress(patternAddress)) << 8;
-    lowerPattern>>=8;
     lowerPattern|=(readAddress(patternAddress+8)) << 8;
 }
 
@@ -197,21 +194,21 @@ void PPU::generateFrame(int cycles){
             addCycles(1);
             renderFlag = false;
         }
-        else 
+        else{
             return;
+        } 
     }
-   // currentCycle = 1;
     if(currentCycle>=1&&currentCycle<=256){
-        // if(currentScanline==-1){
-        //     // fetch first two tiles into pattern register
-        //     if(cyclesLeft>=2){
-                
-        //     }
-        // } // Add at the end, initialize -1 as currentScanline
         if(currentScanline!=-1&&currentScanline<240){
-            for(int i = (currentCycle/8)+2 ; i <34; i++){
+            for(int i = (currentCycle/8)+2 ; i < 34; i++){
                 unsigned char upperTile = upperPattern&0x00FF;
                 unsigned char lowerTile = lowerPattern&0x00FF;
+                if(cyclesLeft >= 8){
+                    addCycles(8);
+                }
+                else{
+                    return;
+                }
                 for(int patternBit = 0; patternBit < 8; patternBit++){
                     short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
                     if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
@@ -225,42 +222,31 @@ void PPU::generateFrame(int cycles){
                     printf("RENDERING %d %d\n", x, y);
                     setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
                 }
-                if(i<32){
-                    if (cyclesLeft>=8){
-                        fetchTile(i);
-                    }
-                    else 
-                        return;
 
-                    //sHIFT RIGHT anyways
+                upperPattern >>= 8;
+                lowerPattern >>= 8;
+                if(i<32){
+                    fetchTile(i);
                 }
-                else{
-                    if(cyclesLeft>=8){
-                        addCycles(8);
-                    }
-                    else{
-                        return;
-                    }
-                }   
             }
             renderFlag = true;
         }
         else {
             if(currentScanline>=240){
-                    if (currentScanline == 241){
-                        unsigned char status = getRegister(PPUSTATUS);
-                        setRegister(PPUSTATUS, status|0x80);
-                        if(shouldInterrupt()){
-                            NMI->triggerInterrupt();    
-                        }    
-                    }
-                    if (cyclesLeft>=341){
-                        addCycles(341);
-                        currentCycle = 0;
-                    }
-                    else {
-                        return;
-                    }
+                if (currentScanline == 241){
+                    unsigned char status = getRegister(PPUSTATUS);
+                    setRegister(PPUSTATUS, status|0x80);
+                    if(shouldInterrupt()){
+                        NMI->triggerInterrupt();
+                    }    
+                }
+                if (cyclesLeft>=341){
+                    addCycles(341);
+                    currentCycle = 0;
+                }
+                else {
+                    return;
+                }
             }
         }
         currentScanline+=1;
@@ -273,7 +259,7 @@ void PPU::generateFrame(int cycles){
     }
     //check for enable rednering
     if (currentCycle==257){
-        if (cyclesLeft>=64){
+        if(cyclesLeft>=64){
             addCycles(64);
         }
         else{
@@ -282,11 +268,13 @@ void PPU::generateFrame(int cycles){
     }
     if (currentCycle==321){
         if (cyclesLeft>=8){
+            addCycles(8);
             fetchTile(0);
         }
     }
     if(currentCycle==329){
         if(cyclesLeft>=8){
+            addCycles(8);
             fetchTile(1);  
         }
     }
