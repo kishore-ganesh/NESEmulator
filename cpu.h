@@ -7,6 +7,7 @@ class CPU{
     public:
     unsigned char A, X, Y, P; //check check setting of stack pointer
     unsigned char SP;
+    int cycles;
     Memory* memory;
     enum masks{
         CARRY = 0x01,
@@ -23,6 +24,7 @@ class CPU{
     bool IRQ; // refactor
     CPU(Memory* memory);
     EdgeInterrupt* getNMIPointer();
+    unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
     void setFlag(char mask, bool bit);
@@ -35,7 +37,7 @@ class CPU{
     void readZeroPageX(unsigned short& PC, unsigned short& address, unsigned char X);
     void readAbsoluteX(unsigned short &PC, unsigned short & address,unsigned char X);
     void processInstruction(unsigned char instruction);
-    void cycle();
+    int cycle();
     void OAMDMA(char data);
     void ORA(unsigned short address);
     void AND(unsigned short address);

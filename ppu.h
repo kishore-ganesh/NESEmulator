@@ -23,9 +23,15 @@ class PPU{
     char vram[2*1024];
     char registers[8];
     short scroll;
+    unsigned short upperPattern, lowerPattern;
+    unsigned char attribute;
     unsigned short address;
     char xscroll, yscroll;
     char OAM[256];
+    int cyclesLeft;
+    int currentCycle;
+    int currentScanline;
+
     RGB display [256][240]; //take care of x and y
     Memory* memory;
     SDL_Window* window;
@@ -110,6 +116,8 @@ class PPU{
     unsigned char getRegister(Registers reg);
     void  setRegister(Registers reg, char value);
     char getIncrement();
+    void addCycles(int cycles);
+    void fetchTile(int tileNumber);
     /*
     Read register is used when CPU reads something from PPU. It is
     an operation, unlike get register, which just gets the register without doing anything PPU specific

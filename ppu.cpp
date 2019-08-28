@@ -10,6 +10,8 @@ char getOffset(char r, char c){
 PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->memory = memory;
     this->NMI = NMI;
+    this->cyclesLeft = 0;
+    this->currentScanline = -1;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("NESEmulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, 0);
@@ -153,43 +155,80 @@ short PPU::getBasePatternTableAddress(bool background){
     }   
 }
 
-void PPU::generateFrame(){
+void PPU::addCycles(int cycles){
+    currentCycle+=cycles;
+    cyclesLeft-=cycles;
+}
+
+void PPU::fetchTile(int tileNumber){
+    // Fix this
+    // 
     short baseNameTableAddress = getNameTableAddress();
-    //check for enable rednering
-    for(short i = baseNameTableAddress; i<baseNameTableAddress+960; i++){
-        unsigned char nameTableEntry = readAddress(i);
-        short basePatternTableAddress = getBasePatternTableAddress(true);
-        short baseAttributeTableAddress = baseAttributeTableAddress + 0x3C0; //check this, make this only one memory acces
-        short attributeNameTableAddress = ((i - baseNameTableAddress) % 32)/2 + ((i-baseNameTableAddress)/64)*16;
-        short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
-        unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+    unsigned char nameTableEntry = readAddress(tileNumber+baseNameTableAddress+(currentScanline/8)*32);    
+    short basePatternTableAddress = getBasePatternTableAddress(true);
+    short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
+    short attributeNameTableAddress = (((currentScanline/8)*32+tileNumber) % 32)/2 + (((currentScanline/8)*32+tileNumber)/64)*16;
+    short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
+    unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+    char r, c;
+    r = ((attributeNameTableAddress/16)&0x01)?1:0;
+    c = (attributeNameTableAddress&0x01)?1:0;
+    unsigned char offset = getOffset(r, c);
+    attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
+    short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
+    upperPattern>>=8;
+    upperPattern|=(readAddress(patternAddress)) << 8;
+    lowerPattern>>=8;
+    lowerPattern|=(readAddress(patternAddress+8)) << 8;
+}
 
-        char r, c;
-        r = ((attributeNameTableAddress/16)&0x01)?1:0;
-        c = (attributeNameTableAddress&0x01)?1:0;
-        unsigned char offset = getOffset(r, c);
-        unsigned char attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
-        for(char j = 0; j < 8; j++){
-            short patternAddress = nameTableEntry*16 + basePatternTableAddress + j;
-            unsigned char upperTile = readAddress(patternAddress);
-            unsigned char lowerTile = readAddress(patternAddress+8);
-            
-            for(char k = 0; k < 8; k++){
-                short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
-                if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
-                    palleteAddress = 0x3F00; // check this
-                }
-                upperTile<<=1;
+void PPU::generateFrame(){
 
-                lowerTile<<=1; 
-                char palleteIndex = readAddress(palleteAddress);
-                int x = k + ((i-baseNameTableAddress)%32)*8;
-                
-                int y = ((i-baseNameTableAddress)/32)*8+j;
-                setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
-            }
+    if(currentCycle==0){
+        if(cyclesLeft>=1){
+            addCycles(1);
         }
     }
+    currentCycle = 1;
+    if(currentCycle>=1&&currentCycle<=256){
+        // if(currentScanline==-1){
+        //     // fetch first two tiles into pattern register
+        //     if(cyclesLeft>=2){
+                
+        //     }
+        // } // Add at the end, initialize -1 as currentScanline
+        if(currentScanline!=-1){
+            for(int i = 2 ; i <34; i++){
+                unsigned char upperTile = upperPattern&0x00FF;
+                unsigned char lowerTile = lowerPattern&0x00FF;
+                for(int patternBit = 0; patternBit < 8; patternBit++){
+                    short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
+                    if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
+                        palleteAddress = 0x3F00; // check this
+                    }
+                    upperTile<<=1;
+                    lowerTile<<=1; 
+                    char palleteIndex = readAddress(palleteAddress);
+                    int x = (i-2)*8 + patternBit;
+                    int y = currentScanline;
+                    printf("RENDERING %d %d\n", x, y);
+                    setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
+                }
+                if(i<32){
+                    fetchTile(i);
+
+                    //sHIFT RIGHT anyways
+                }   
+            }
+        }
+        currentScanline+=1;
+        currentScanline=currentScanline==240?-1:currentScanline;
+        fetchTile(0);
+        fetchTile(1);    
+        // fetch nextScanlineData
+    }
+    //check for enable rednering
+    
     unsigned char status = getRegister(PPUSTATUS);
     setRegister(PPUSTATUS, status|0x80);
     /*

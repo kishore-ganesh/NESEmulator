@@ -20,6 +20,12 @@ NES::NES(char* path){
 }
 
 void NES::start(){
+    // while(true){
+    //     int cpuCycles = cpu->cycle();
+    //     cpu->printStatus();
+    //     // ppu->generateFrame();
+    //     // ppu->displayFrame();
+    // }
     auto cpuLoop = [&](CPU* cpu){
         while(true){
             cpu->cycle();
