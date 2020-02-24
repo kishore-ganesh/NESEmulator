@@ -2,7 +2,7 @@
 #define PPU_INCLUDE
 #include "memory.h"
 #include "interrupt.h"
-#include <SDL2/SDL.h>
+#include "util.h"
 #include<vector>
 
 class Memory; // why did forward declaration work
@@ -17,9 +17,6 @@ enum Registers{
     PPUDATA,
 };
 
-struct RGB{
-    unsigned char r, g, b;
-};
 
 struct Sprite{
     unsigned char y;
@@ -50,10 +47,8 @@ class PPU
     int currentCycle;
     int currentScanline;
 
-    RGB display[256][240]; //take care of x and y
+    std::vector<std::vector<RGB>> display = std::vector<std::vector<RGB>>(256, std::vector<RGB>(240));; //take care of x and y
     Memory *memory;
-    SDL_Window *window;
-    SDL_Renderer *renderer;
     EdgeInterrupt *NMI;
     /*
     These are palletes used by the NES (taken verbatim from Blargg's palletes). Later we will add NTSC decoding to mirror what the NES actually
@@ -149,6 +144,7 @@ public:
     bool shouldInterrupt();
     void cycle();
     RGB getPixel(int x, int y);
+    std::vector<std::vector<RGB>> getFrame();
     void setPixel(int x, int y, RGB value);
     void generateFrame(int cycles);
     void displayFrame();

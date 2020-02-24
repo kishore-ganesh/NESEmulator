@@ -13,9 +13,6 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->cyclesLeft = 0;
     this->currentCycle = 0;
     this->currentScanline = -1;
-    SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("NESEmulator", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN);
-    renderer = SDL_CreateRenderer(window, -1, 0);
 }
 
 unsigned char PPU::readAddress(unsigned short address)
@@ -329,15 +326,9 @@ void PPU::setPixel(int x, int y, RGB value){
     // std::cout << x << " " << y << std::endl;
     display[x][y] = value;
 }
-void PPU::displayFrame(){
-    for(int x = 0; x < 256; x++){
-        for(int y = 0; y < 240; y++){
-            RGB pixel = getPixel(x, y);
-            SDL_SetRenderDrawColor(renderer, pixel.r, pixel.g, pixel.b, 1);
-            SDL_RenderDrawPoint(renderer, x, y);
-        }
-    }
-    SDL_RenderPresent(renderer);
+
+std::vector<std::vector<RGB>> PPU::getFrame(){
+    return display;
 }
 bool PPU::shouldRender(){
     return renderFlag && currentScanline == 240;

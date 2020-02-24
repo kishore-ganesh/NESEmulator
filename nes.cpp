@@ -8,46 +8,53 @@
 //Delay through Cycles
 #include "nes.h"
 #include <thread>
-    
-NES::NES(char* path){
+
+NES::NES(char *path)
+{
     //add CPU code
-    
+
     memory = new Memory(path);
     cpu = new CPU(memory);
     ppu = new PPU(memory, cpu->getNMIPointer());
     memory->setPPU(ppu);
-    
 }
 
-void NES::start(){
-    while(true){
-        int cpuCycles = cpu->cycle();
-        cpu->printStatus();
-        ppu->generateFrame(cpuCycles*3);
-        if(ppu->shouldRender()){
-            ppu->displayFrame();    
-        }
-    }
-    // auto cpuLoop = [&](CPU* cpu){
-    //     while(true){
-    //         cpu->cycle();
-    //         cpu->printStatus();
-    //     }
-    // };
+void NES::cycle()
+{
 
-    // auto ppuLoop = [&](PPU* ppu){
-    //     while(true){
-    //         ppu->generateFrame();
-    //         ppu->displayFrame();
-    //     }
-    // };
-    // std::thread cpuThread(cpuLoop, cpu);
-    // std::thread ppuThread(ppuLoop, ppu);
-    // cpuThread.join();
-    // ppuThread.join();
+    int cpuCycles = cpu->cycle();
+    cpu->printStatus();
+    ppu->generateFrame(cpuCycles * 3);
+    // if (ppu->shouldRender())
+    // {
+    //     ppu->displayFrame();
+    // }
 }
 
+bool NES::shouldRender(){
+    return ppu->shouldRender();
+}
 
+std::vector<std::vector<RGB>> NES::getFrame(){
+    return ppu->getFrame();
+}
+// auto cpuLoop = [&](CPU* cpu){
+//     while(true){
+//         cpu->cycle();
+//         cpu->printStatus();
+//     }
+// };
+
+// auto ppuLoop = [&](PPU* ppu){
+//     while(true){
+//         ppu->generateFrame();
+//         ppu->displayFrame();
+//     }
+// };
+// std::thread cpuThread(cpuLoop, cpu);
+// std::thread ppuThread(ppuLoop, ppu);
+// cpuThread.join();
+// ppuThread.join();
 
 
 //What happens on reset and what happens every cycle

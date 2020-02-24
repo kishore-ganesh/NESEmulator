@@ -19,5 +19,7 @@ class NES{
     bool IRQ, NMI;
     bool previousNMILevel;
     NES(char* path);
-    void start();
+    void cycle();
+    bool shouldRender();
+    std::vector<std::vector<RGB>> getFrame();
 };
