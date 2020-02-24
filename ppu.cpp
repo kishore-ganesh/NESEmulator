@@ -65,7 +65,7 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 }
 
-
+    
 unsigned char PPU::getRegister(Registers reg){
     return registers[reg];
 }
@@ -75,7 +75,7 @@ void PPU::setRegister(Registers reg, char value){
 }
 
 char PPU::getIncrement(){
-    if(PPUCTRL&0x04){
+    if(getRegister(PPUCTRL)&0x04){
         return 32;
     }
     return 1;
@@ -104,12 +104,21 @@ unsigned char PPU::readRegister(Registers reg){
     return value;
 }
 
+void PPU::writeOAM(unsigned char address, unsigned char value){
+    OAM[address] = value;
+}
+
 void PPU::writeRegister(Registers reg, unsigned char value){
     setRegister(reg, value);
     switch(reg){
+        case OAMADDR: {
+            setRegister(PPUADDR, value);
+            break;
+        }
         case OAMDATA:{
             char address = getRegister(OAMADDR);
-            setRegister(PPUADDR, address + 1);
+            writeOAM(address, value);
+            setRegister(OAMADDR, address + 1);
             break;
         }
         case PPUSCROLL: {
@@ -148,7 +157,8 @@ short PPU::getBasePatternTableAddress(bool background){
     if(!background){
         mask = 0x08;
     }
-    if(PPUCTRL&mask){
+
+    if(!getRegister(PPUCTRL)&mask){
         return 0x0000;
     }
     else{
@@ -162,6 +172,7 @@ bool PPU::shouldInterrupt(){
 }
 
 void PPU::addCycles(int cycles){
+    //Throw an exception
     currentCycle+=cycles;
     cyclesLeft-=cycles;
 }
@@ -170,18 +181,36 @@ void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
     short baseNameTableAddress = getNameTableAddress();
-    unsigned char nameTableEntry = readAddress(tileNumber+baseNameTableAddress+(currentScanline/8)*32);    
+    short nameTableOffset = tileNumber + (currentScanline/8) * 32;
+    unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
+    // printf("NAMETABLE OFFSET %d\n", nameTableOffset);
+    //Check this again
+    // short attributeNameTableAddress = (nameTableOffset % 32)/4 + (nameTableOffset/128)*8;
     short attributeNameTableAddress = (((currentScanline/8)*32+tileNumber) % 32)/2 + (((currentScanline/8)*32+tileNumber)/64)*16;
+    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
+    if((attributeNameTableAddress + baseAttributeTableAddress) > 0x23ff){
+        printf("ATTRIBUTE ADDRESS: %x\n", baseAttributeTableAddress + attributeNameTableAddress);
+    }
+    
     short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
     unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+    // unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeNameTableAddress);
     char r, c;
     r = ((attributeNameTableAddress/16)&0x01)?1:0;
+    // r = ((nameTableOffset%32)/4)/4;
+
     c = (attributeNameTableAddress&0x01)?1:0;
+    // r = (nameTableOffset/32) % 4;
+    // c = ((nameTableOffset%32))%4;
+    printf("ROWS: %d,  COLUMNS: %d\n", r, c);
     unsigned char offset = getOffset(r, c);
     attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
-    short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
+    //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
+    unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
+    upperPattern&=(0x00FF);
+    lowerPattern&=(0x00FF);
     upperPattern|=(readAddress(patternAddress)) << 8;
     lowerPattern|=(readAddress(patternAddress+8)) << 8;
 }
@@ -200,6 +229,7 @@ void PPU::generateFrame(int cycles){
     }
     if(currentCycle>=1&&currentCycle<=256){
         if(currentScanline!=-1&&currentScanline<240){
+            //Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
             for(int i = (currentCycle/8)+2 ; i < 34; i++){
                 unsigned char upperTile = upperPattern&0x00FF;
                 unsigned char lowerTile = lowerPattern&0x00FF;
@@ -209,7 +239,10 @@ void PPU::generateFrame(int cycles){
                 else{
                     return;
                 }
+
+                
                 for(int patternBit = 0; patternBit < 8; patternBit++){
+                    //This is for pallet background only
                     short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
                     if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
                         palleteAddress = 0x3F00; // check this
@@ -274,6 +307,8 @@ void PPU::generateFrame(int cycles){
     }
     if(currentCycle==329){
         if(cyclesLeft>=8){
+            upperPattern >>= 8;
+            lowerPattern >>= 8;
             addCycles(8);
             fetchTile(1);  
         }
