@@ -102,6 +102,7 @@ unsigned char PPU::readRegister(Registers reg){
 }
 
 void PPU::writeOAM(unsigned char address, unsigned char value){
+    // printf("OAM WRITING in %x VALUE: %d\n ", address, value);
     OAM[address] = value;
 }
 
@@ -162,6 +163,7 @@ short PPU::getBasePatternTableAddress(bool background){
         return 0x1000;
     }   
 }
+
 
 bool PPU::shouldInterrupt(){
     unsigned char value = getRegister(PPUCTRL);
@@ -224,6 +226,17 @@ void PPU::generateFrame(int cycles){
             return;
         } 
     }
+    secondaryOAM.clear();
+
+            //Place it in the right place
+    for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
+                    //Should be absolute distance
+        printf("SPRITE OAM: %d %d\n", OAM[oamIndex], OAM[oamIndex+3]);
+        if(abs(OAM[oamIndex] - (currentScanline+1))<8){
+                    //Add size check
+            secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3]});
+        }
+    }
     if(currentCycle>=1&&currentCycle<=256){
         if(currentScanline!=-1&&currentScanline<240){
             //Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
@@ -253,12 +266,41 @@ void PPU::generateFrame(int cycles){
                     setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
                 }
 
+                for(int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++){
+                    secondaryOAM[oamIndex].print();
+                    unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
+                    //Modify for 8x16
+                    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + currentScanline%8;
+                    unsigned char upperTile = readAddress(patternAddress);
+                    unsigned char lowerTile = readAddress(patternAddress + 8);
+                    unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
+
+                    for(int patternBit = 0; patternBit < 8;  patternBit++){
+                        
+                        short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
+                        char palleteIndex = readAddress(palleteAddress);
+                        //Need to evaluate priority here
+                        setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
+                        upperTile <<= 1;
+                        lowerTile <<= 1;
+                    }
+
+                    //Implement priority
+                }
+
+
+
+                //Add OAM[n][M]part
+
+                //Add HBlank here
                 upperPattern >>= 8;
                 lowerPattern >>= 8;
                 if(i<32){
                     fetchTile(i);
                 }
             }
+
+
             renderFlag = true;
         }
         else {

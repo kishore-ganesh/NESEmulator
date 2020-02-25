@@ -23,6 +23,9 @@ struct Sprite{
     unsigned char tileIndex;
     unsigned char attributes;
     unsigned char x;
+    void print(){
+        printf("SPRITE at %d, %d with tileIndex %d\n", x, y, tileIndex);
+    }
 };
 
 struct SpritePPUInfo{
@@ -34,14 +37,14 @@ struct SpritePPUInfo{
 class PPU
 {
     bool renderFlag;
-    char vram[2 * 1024];
+    unsigned char vram[2 * 1024];
     char registers[8];
     short scroll;
     unsigned short upperPattern, lowerPattern;
     unsigned char attribute;
     unsigned short address;
     char xscroll, yscroll;
-    char OAM[256];
+    unsigned char OAM[256];
     std::vector<Sprite> secondaryOAM;
     int cyclesLeft;
     int currentCycle;
