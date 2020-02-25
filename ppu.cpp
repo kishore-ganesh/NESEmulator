@@ -103,6 +103,9 @@ unsigned char PPU::readRegister(Registers reg){
 
 void PPU::writeOAM(unsigned char address, unsigned char value){
     // printf("OAM WRITING in %x VALUE: %d\n ", address, value);
+    if(address>255){
+        printf("OAM INVALID ADDRESS\n");
+    }
     OAM[address] = value;
 }
 
@@ -219,6 +222,8 @@ void PPU::fetchTile(int tileNumber){
 void PPU::generateFrame(int cycles){
     cyclesLeft += cycles;
     printf("CURRENT CYCLE: %d, CYCLES LEFT: %d\n", currentCycle, cyclesLeft);
+    int regValue = readRegister(PPUCTRL);
+    printf("SPRITE MODE: %s\n", (regValue & 0x20)?"8x16":"8x8");
     if(currentCycle==0){
         if(cyclesLeft>=1){
             addCycles(1);
@@ -256,7 +261,7 @@ void PPU::generateFrame(int cycles){
                 for(int patternBit = 0; patternBit < 8; patternBit++){
                     //This is for pallet background only
                     short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
-                    if((((lowerTile >> 7) << 1 )| ((upperTile >> 7))==0)){
+                    if(((((lowerTile >> 7) << 1 ) | ((upperTile >> 7)))==0)){
                         palleteAddress = 0x3F00; // check this
                     }
                     upperTile<<=1;
@@ -280,6 +285,11 @@ void PPU::generateFrame(int cycles){
                     for(int patternBit = 0; patternBit < 8;  patternBit++){
                         
                         short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
+                        if((lowerTile>>7)==0&&(upperTile>>7)==0){
+                            //Should be mirror
+                            palleteAddress = 0x3F00;
+                        }
+                        printf("PALLETE ADDRESS: %x\n", palleteAddress);
                         char palleteIndex = readAddress(palleteAddress);
                         //Need to evaluate priority here
                         setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
