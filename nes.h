@@ -1,3 +1,5 @@
+#ifndef NES_INCLUDE
+#define NES_INCLUDE
 #include "cpu.h"
 #include<stdio.h>
 #include<iostream>
@@ -23,3 +25,4 @@ class NES{
     bool shouldRender();
     std::vector<std::vector<RGB>> getFrame();
 };
+#endif

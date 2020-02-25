@@ -147,6 +147,7 @@ short PPU::getNameTableAddress(){
     char nameTableNumber = getRegister(PPUCTRL) & 0x03;
     short baseAddress = 0x2000;
     short address = baseAddress + ((nameTableNumber*4) << 8);
+    printf("NAMETABLE ADDRRESS: %x\n", address);
     return address; //check
 }
 
@@ -181,6 +182,7 @@ void PPU::fetchTile(int tileNumber){
     // 
     short baseNameTableAddress = getNameTableAddress();
     short nameTableOffset = tileNumber + (currentScanline/8) * 32;
+    printf("NAMETABLE ADDRESS: %x\n", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
@@ -280,7 +282,7 @@ void PPU::generateFrame(int cycles){
                         short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
                         char palleteIndex = readAddress(palleteAddress);
                         //Need to evaluate priority here
-                        setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
+                        // setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
                         upperTile <<= 1;
                         lowerTile <<= 1;
                     }
@@ -330,6 +332,9 @@ void PPU::generateFrame(int cycles){
         // fetch nextScanlineData
     }
     //check for enable rednering
+    if(currentCycle>=257 && currentCycle<=320){
+        setRegister(OAMADDR, 0);
+    }
     if (currentCycle==257){
         if(cyclesLeft>=64){
             addCycles(64);

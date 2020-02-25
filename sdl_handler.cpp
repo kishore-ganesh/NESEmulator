@@ -10,6 +10,7 @@ void SDLHandler::handleEvent()
         case SDL_QUIT:
         {
             SDL_Quit();
+            shouldQuit = true;
             break;
         }
         }
@@ -28,4 +29,14 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
         }
     }
     SDL_RenderPresent(renderer);
+}
+
+void SDLHandler::begin(){
+    while(!shouldQuit){
+        handleEvent();
+        nes->cycle();
+        if(nes->shouldRender()){
+            displayFrame(nes->getFrame());
+        }
+    }
 }
