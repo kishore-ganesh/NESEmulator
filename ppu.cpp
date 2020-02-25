@@ -282,7 +282,7 @@ void PPU::generateFrame(int cycles){
                         short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
                         char palleteIndex = readAddress(palleteAddress);
                         //Need to evaluate priority here
-                        // setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
+                        setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
                         upperTile <<= 1;
                         lowerTile <<= 1;
                     }
@@ -323,7 +323,18 @@ void PPU::generateFrame(int cycles){
                 }
             }
         }
-        currentScanline+=1;
+        //Are we reaching hee?
+        if(currentScanline!=-1){
+            currentScanline++;
+        }
+        else{
+            if(cyclesLeft>=320){
+                addCycles(320);
+                currentScanline++;
+            }
+        }
+        // currentScanline+=1;
+        printf("CURRENT SCANLINE: %d\n", currentScanline);
         if(currentScanline==261){
             currentScanline = -1;
             unsigned char status = getRegister(PPUSTATUS);
@@ -345,6 +356,7 @@ void PPU::generateFrame(int cycles){
     }
     if (currentCycle==321){
         if (cyclesLeft>=8){
+            printf("NEXT: %d\n", currentScanline);
             addCycles(8);
             fetchTile(0);
         }
