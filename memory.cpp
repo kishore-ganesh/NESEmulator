@@ -40,7 +40,9 @@ unsigned char Memory::readCHRAddress(unsigned short address){
 
 void Memory::writeAddress(unsigned short address, char value){
     printf("Writing to: %x\n",address);
-    
+    if(address >= 0x2008 && address <= 0x3fff){
+        printf("Mirrored register access\n");
+    }    
     if(address <= 0x1FFF){
         memory[address%0x800] = value;
     }
@@ -49,6 +51,7 @@ void Memory::writeAddress(unsigned short address, char value){
     else if(address >= 0x2000 && address <= 0x2007){
         ppu->writeRegister((Registers)(address-0x2000), value);
     }
+
 
     // Have mirroring here
     else if(address == 0x4014){
@@ -71,7 +74,7 @@ short Memory::readLittleEndian(unsigned short address){
 
 void Memory::OAMDMA(unsigned char highByte){
     for(unsigned short i=0x00; i<=(unsigned short)0xFF; i++){
-        printf("%d\n", i);
+        // printf("OAM WRITING FROM: %x\n", (highByte<<8)|i);
         char data = readAddress((highByte<<8) | i); //Check that OAM DMA increases OAM Addresses
         writeAddress(0x2004, data);
     }

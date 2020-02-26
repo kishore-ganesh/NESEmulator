@@ -142,7 +142,7 @@ public:
     unsigned char readRegister(Registers reg);
     void writeRegister(Registers reg, unsigned char value);
     void writeOAM(unsigned char address, unsigned char value);
-    short getNameTableAddress();
+    unsigned short getNameTableAddress();
     short getBasePatternTableAddress(bool background);
     bool shouldInterrupt();
     void cycle();

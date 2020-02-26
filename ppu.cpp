@@ -87,6 +87,7 @@ unsigned char PPU::readRegister(Registers reg){
         }
         case OAMDATA: {
             return OAM[value]; 
+            break;
         }
         case PPUDATA: {
             printf("READING FROM PPU DATA\n");
@@ -110,14 +111,17 @@ void PPU::writeOAM(unsigned char address, unsigned char value){
 }
 
 void PPU::writeRegister(Registers reg, unsigned char value){
+    //Don't need to handle other cases, we're handling here
     setRegister(reg, value);
     switch(reg){
         case OAMADDR: {
+            printf("OAM ADDRESS SET: %x\n", value);
             setRegister(PPUADDR, value);
             break;
         }
         case OAMDATA:{
-            char address = getRegister(OAMADDR);
+            unsigned char address = getRegister(OAMADDR);
+            printf("OAM ADDRESS: %d\n", address);
             writeOAM(address, value);
             setRegister(OAMADDR, address + 1);
             break;
@@ -146,7 +150,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
     }
 }
 
-short PPU::getNameTableAddress(){
+unsigned short PPU::getNameTableAddress(){
     char nameTableNumber = getRegister(PPUCTRL) & 0x03;
     short baseAddress = 0x2000;
     short address = baseAddress + ((nameTableNumber*4) << 8);
@@ -156,11 +160,13 @@ short PPU::getNameTableAddress(){
 
 short PPU::getBasePatternTableAddress(bool background){
     char mask = 0x10;
+    printf("PPU CTRL %x\n", getRegister(PPUCTRL));
     if(!background){
         mask = 0x08;
+        // return 0x0000;
     }
 
-    if(!getRegister(PPUCTRL)&mask){
+    if(!(getRegister(PPUCTRL)&mask)){
         return 0x0000;
     }
     else{
@@ -224,6 +230,8 @@ void PPU::generateFrame(int cycles){
     printf("CURRENT CYCLE: %d, CYCLES LEFT: %d\n", currentCycle, cyclesLeft);
     int regValue = readRegister(PPUCTRL);
     printf("SPRITE MODE: %s\n", (regValue & 0x20)?"8x16":"8x8");
+    printf("SECONDARY OAM SIZE: %d\n", secondaryOAM.size());
+
     if(currentCycle==0){
         if(cyclesLeft>=1){
             addCycles(1);
@@ -239,7 +247,7 @@ void PPU::generateFrame(int cycles){
     for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
                     //Should be absolute distance
         printf("SPRITE OAM: %d %d\n", OAM[oamIndex], OAM[oamIndex+3]);
-        if(abs(OAM[oamIndex] - (currentScanline+1))<8){
+        if(abs(OAM[oamIndex] - (currentScanline))<8 && secondaryOAM.size() < 8){
                     //Add size check
             secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3]});
         }
@@ -280,11 +288,13 @@ void PPU::generateFrame(int cycles){
                     unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + currentScanline%8;
                     unsigned char upperTile = readAddress(patternAddress);
                     unsigned char lowerTile = readAddress(patternAddress + 8);
+                    // Attribute - Flip
                     unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
-
+                    bool verticalFlip = attribute & 0x80;
+                    bool horizontalFlip = attribute & 0x40;
                     for(int patternBit = 0; patternBit < 8;  patternBit++){
                         
-                        short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
+                        unsigned short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
                         if((lowerTile>>7)==0&&(upperTile>>7)==0){
                             //Should be mirror
                             palleteAddress = 0x3F00;
