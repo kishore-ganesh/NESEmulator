@@ -247,7 +247,7 @@ void PPU::generateFrame(int cycles){
     for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
                     //Should be absolute distance
         printf("SPRITE OAM: %d %d\n", OAM[oamIndex], OAM[oamIndex+3]);
-        if(abs(OAM[oamIndex] - (currentScanline))<8 && secondaryOAM.size() < 8){
+        if((abs(currentScanline-OAM[oamIndex]))<8 && secondaryOAM.size() < 8){
                     //Add size check
             secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3]});
         }
@@ -283,15 +283,28 @@ void PPU::generateFrame(int cycles){
 
                 for(int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++){
                     secondaryOAM[oamIndex].print();
+                    char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+                    // printf("")
+                    if(secondaryOAM[oamIndex].y > currentScanline || lineNo > 7){
+                        continue;
+                    }
                     unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
                     //Modify for 8x16
-                    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + currentScanline%8;
-                    unsigned char upperTile = readAddress(patternAddress);
-                    unsigned char lowerTile = readAddress(patternAddress + 8);
-                    // Attribute - Flip
                     unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
                     bool verticalFlip = attribute & 0x80;
                     bool horizontalFlip = attribute & 0x40;
+                    // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+                    
+                    printf("LINENO: %d, CURRS: %d\n", lineNo, currentScanline%8);
+                    if(verticalFlip){
+                        lineNo = 7 - lineNo;
+                    }
+                    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
+                    unsigned char upperTile = readAddress(patternAddress);
+                    unsigned char lowerTile = readAddress(patternAddress + 8);
+                    // Attribute - Flip
+                    
+                    
                     for(int patternBit = 0; patternBit < 8;  patternBit++){
                         
                         unsigned short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
@@ -302,7 +315,13 @@ void PPU::generateFrame(int cycles){
                         printf("PALLETE ADDRESS: %x\n", palleteAddress);
                         char palleteIndex = readAddress(palleteAddress);
                         //Need to evaluate priority here
-                        setPixel(secondaryOAM[oamIndex].x+patternBit, currentScanline, palletes[palleteIndex&0x3F]);
+                        unsigned char x = secondaryOAM[oamIndex].x + patternBit;
+                        // unsigned char y = secondaryOAM[oamIndex].y;
+                        if(horizontalFlip){
+                            x = secondaryOAM[oamIndex].x + 7 - (patternBit);
+                        }
+                        
+                        setPixel(x, currentScanline, palletes[palleteIndex&0x3F]);
                         upperTile <<= 1;
                         lowerTile <<= 1;
                     }
