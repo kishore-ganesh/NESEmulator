@@ -35,6 +35,20 @@ bool NES::shouldRender(){
     return ppu->shouldRender();
 }
 
+void NES::ppuCycle(){
+    ppu->generateFrame(cpuCycles*3);
+}
+
+void NES::cpuCycle(){
+    cpuCycles = cpu->cycle();
+    cpu->printStatus();
+    ppu->addCPUCycles(cpuCycles);
+}
+
+bool NES::ppuCyclesLeft(){
+    return ppu->getCyclesLeft();
+}
+
 std::vector<std::vector<RGB>> NES::getFrame(){
     return ppu->getFrame();
 }

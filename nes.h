@@ -11,7 +11,7 @@ class NES{
     CPU* cpu;
     Memory* memory;
     PPU* ppu;
-    
+    int cpuCycles;
     /*
     A - Accumulator
     X, Y - Index register
@@ -22,6 +22,9 @@ class NES{
     bool previousNMILevel;
     NES(char* path);
     void cycle();
+    void cpuCycle();
+    void ppuCycle();
+    bool ppuCyclesLeft();
     bool shouldRender();
     std::vector<std::vector<RGB>> getFrame();
 };

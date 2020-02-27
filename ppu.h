@@ -134,6 +134,7 @@ public:
     void setRegister(Registers reg, char value);
     char getIncrement();
     void addCycles(int cycles);
+    void addCPUCycles(int cycles);
     void fetchTile(int tileNumber);
     /*
     Read register is used when CPU reads something from PPU. It is
@@ -152,6 +153,7 @@ public:
     void generateFrame(int cycles);
     void displayFrame();
     bool shouldRender();
+    bool getCyclesLeft();
 };
 
 /*

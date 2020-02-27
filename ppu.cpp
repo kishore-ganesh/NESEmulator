@@ -186,6 +186,10 @@ void PPU::addCycles(int cycles){
     cyclesLeft-=cycles;
 }
 
+void PPU::addCPUCycles(int cycles){
+    cyclesLeft+=(cycles*3);
+}
+
 void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
@@ -430,6 +434,11 @@ std::vector<std::vector<RGB>> PPU::getFrame(){
 }
 bool PPU::shouldRender(){
     return renderFlag && currentScanline == 240;
+}
+
+bool PPU::getCyclesLeft(){
+    printf("PPU CYCLES LEFT: %d\n", cyclesLeft);
+    return cyclesLeft > 8;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

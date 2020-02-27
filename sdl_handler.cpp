@@ -50,9 +50,18 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
 void SDLHandler::begin(){
     while(!shouldQuit){
         handleEvent();
-        nes->cycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
+        // nes->cpuCycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
+        nes->cycle();
         if(nes->shouldRender()){
             displayFrame(nes->getFrame());
         }
+        // while(nes->ppuCyclesLeft()){
+        //     printf("IN PPU CYCLE\n");
+        //     nes->ppuCycle();
+        //     if(nes->shouldRender()){
+        //         displayFrame(nes->getFrame());
+        //     }
+        // }
+        
     }
 }
