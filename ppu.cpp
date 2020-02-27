@@ -291,8 +291,8 @@ void PPU::generateFrame(int cycles){
                     unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
                     //Modify for 8x16
                     unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
-                    bool verticalFlip = attribute & 0x80;
-                    bool horizontalFlip = attribute & 0x40;
+                    bool verticalFlip = secondaryOAM[oamIndex].attributes & 0x80;
+                    bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
                     // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
                     
                     printf("LINENO: %d, CURRS: %d\n", lineNo, currentScanline%8);
