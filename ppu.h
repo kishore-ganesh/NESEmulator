@@ -47,6 +47,7 @@ class PPU
     unsigned char OAM[256];
     std::vector<Sprite> secondaryOAM;
     int cyclesLeft;
+    int cyclesNeeded;
     int currentCycle;
     int currentScanline;
 

@@ -11,6 +11,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->memory = memory;
     this->NMI = NMI;
     this->cyclesLeft = 0;
+    this->cyclesNeeded = 0;
     this->currentCycle = 0;
     this->currentScanline = -1;
 }
@@ -242,8 +243,9 @@ void PPU::generateFrame(int cycles){
             renderFlag = false;
         }
         else{
+            cyclesNeeded = 1;
             return;
-        } 
+        }  
     }
     secondaryOAM.clear();
 
@@ -266,6 +268,7 @@ void PPU::generateFrame(int cycles){
                     addCycles(8);
                 }
                 else{
+                    cyclesNeeded = cyclesLeft - 8;
                     return;
                 }
 
@@ -364,6 +367,7 @@ void PPU::generateFrame(int cycles){
                     currentCycle = 0;
                 }
                 else {
+                    cyclesNeeded = cyclesLeft - 341;
                     return;
                 }
             }
@@ -376,6 +380,10 @@ void PPU::generateFrame(int cycles){
             if(cyclesLeft>=320){
                 addCycles(320);
                 currentScanline++;
+            }
+            else{
+                cyclesNeeded = cyclesLeft - 320;
+                return; 
             }
         }
         // currentScanline+=1;
@@ -396,6 +404,7 @@ void PPU::generateFrame(int cycles){
             addCycles(64);
         }
         else{
+            cyclesNeeded = cyclesLeft - 64;
             return;
         } 
     }
@@ -405,6 +414,10 @@ void PPU::generateFrame(int cycles){
             addCycles(8);
             fetchTile(0);
         }
+        else{
+            cyclesNeeded = cyclesLeft - 8;
+            return; 
+        }
     }
     if(currentCycle==329){
         if(cyclesLeft>=8){
@@ -413,13 +426,23 @@ void PPU::generateFrame(int cycles){
             addCycles(8);
             fetchTile(1);  
         }
+        else{
+            cyclesNeeded = cyclesLeft - 8;
+             return; 
+        }
     }
     if(currentCycle==337){
         if (cyclesLeft>=4){
             addCycles(4);
             currentCycle = 0;
         }
+        else{
+            cyclesNeeded = cyclesLeft - 4;
+            return;
+        }
     }
+    cyclesNeeded = 0;
+    return;
 }
 
 RGB PPU::getPixel(int x, int y){
@@ -440,7 +463,7 @@ bool PPU::shouldRender(){
 
 bool PPU::getCyclesLeft(){
     printf("PPU CYCLES LEFT: %d\n", cyclesLeft);
-    return cyclesLeft > 8;
+return cyclesLeft > cyclesNeeded;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables
