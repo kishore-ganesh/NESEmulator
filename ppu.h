@@ -5,6 +5,8 @@
 #include "util.h"
 #include<vector>
 
+//Nameppaces
+
 class Memory; // why did forward declaration work
 enum Registers{
     PPUCTRL,
@@ -33,6 +35,17 @@ struct SpritePPUInfo{
     unsigned char lowerPattern;
     unsigned char latch;
     unsigned char xPosition;
+};
+
+struct TileInfo{
+    unsigned char upperPattern;
+    unsigned char lowerPattern;
+    unsigned char attribute;
+    int y;
+    int x;
+    bool horizontalFlip;
+    bool background;
+
 };
 class PPU
 {
@@ -137,6 +150,8 @@ public:
     void addCycles(int cycles);
     void addCPUCycles(int cycles);
     void fetchTile(int tileNumber);
+    TileInfo fetchSpriteTile(int oamIndex);
+    void renderTile(TileInfo tileInfo);
     /*
     Read register is used when CPU reads something from PPU. It is
     an operation, unlike get register, which just gets the register without doing anything PPU specific

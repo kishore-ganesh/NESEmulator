@@ -230,6 +230,65 @@ void PPU::fetchTile(int tileNumber){
     lowerPattern|=(readAddress(patternAddress+8)) << 8;
 }
 
+TileInfo PPU::fetchSpriteTile(int oamIndex){
+    char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+    // printf("")
+    
+    unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
+    //Modify for 8x16
+    unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
+    bool verticalFlip = secondaryOAM[oamIndex].attributes & 0x80;
+    bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
+    // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+
+    // printf("LINENO: %d, CURRS: %d\n", lineNo, currentScanline%8);
+    if(verticalFlip){
+        lineNo = 7 - lineNo;
+    }
+
+    // printf("ATTRIBUTES: %d\n", attribute);
+    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
+    unsigned char upperTile = readAddress(patternAddress);
+    unsigned char lowerTile = readAddress(patternAddress + 8);
+    struct TileInfo tileInfo = {
+        upperTile,
+        lowerTile,
+        attribute,
+        currentScanline,
+        secondaryOAM[oamIndex].x,
+        horizontalFlip,
+        false
+    };
+    return tileInfo;
+}
+void PPU::renderTile(TileInfo tileInfo){
+    //Use std::move
+    unsigned short baseAddress = 0x3F00;
+    if(!tileInfo.background){
+        baseAddress = 0x3F10;
+    }
+    for(int patternBit = 0; patternBit < 8;  patternBit++){   
+        unsigned short palleteAddress = baseAddress | (tileInfo.attribute << 2) | ((tileInfo.lowerPattern >> 7)<<1) | (tileInfo.upperPattern>>7);
+        if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
+            //Should be mirror
+            palleteAddress = 0x3F00;
+        }
+        printf("PALLETE ADDRESS: %x\n", palleteAddress);
+        char palleteIndex = readAddress(palleteAddress);
+        //Need to evaluate priority here
+        unsigned char x = tileInfo.x + patternBit;
+        // unsigned char y = secondaryOAM[oamIndex].y;
+        if(tileInfo.horizontalFlip){
+            x = tileInfo.x + 7 - (patternBit);
+        }
+        printf("PALLETE INDEX: %d\n", palleteIndex);
+        setPixel(x, tileInfo.y, palletes[palleteIndex&0x3F]);
+        tileInfo.upperPattern <<= 1;
+        tileInfo.lowerPattern <<= 1;
+    }
+
+}
+
 void PPU::generateFrame(int cycles){
     cyclesLeft += cycles;
     printf("CURRENT CYCLE: %d, CYCLES LEFT: %d\n", currentCycle, cyclesLeft);
@@ -272,69 +331,30 @@ void PPU::generateFrame(int cycles){
                     return;
                 }
 
-                
-                for(int patternBit = 0; patternBit < 8; patternBit++){
-                    //This is for pallet background only
-                    short palleteAddress = 0x3F00 | ((attribute << 2) | ((lowerTile >> 7) << 1 )| (upperTile >> 7));   
-                    if(((((lowerTile >> 7) << 1 ) | ((upperTile >> 7)))==0)){
-                        palleteAddress = 0x3F00; // check this
-                    }
-                    upperTile<<=1;
-                    lowerTile<<=1; 
-                    char palleteIndex = readAddress(palleteAddress);
-                    int x = (i-2)*8 + patternBit;
-                    int y = currentScanline;
-                    printf("RENDERING %d %d\n", x, y);
-                    setPixel(x, y, palletes[palleteIndex&0x3F]); // need to refactor
-                }
+                struct TileInfo tileInfo = {
+                    upperTile,
+                    lowerTile,
+                    attribute,
+                    currentScanline,
+                    (i-2)*8,
+                    false,
+                    true
+                };
+
+                renderTile(tileInfo);
+            
 
                 for(int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++){
-                    secondaryOAM[oamIndex].print();
                     char lineNo = currentScanline - secondaryOAM[oamIndex].y;
-                    // printf("")
                     if(secondaryOAM[oamIndex].y > currentScanline || lineNo > 7){
-                        continue;
+                           continue;
                     }
-                    unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
-                    //Modify for 8x16
-                    unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
-                    bool verticalFlip = secondaryOAM[oamIndex].attributes & 0x80;
-                    bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
-                    // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
-                    
-                    printf("LINENO: %d, CURRS: %d\n", lineNo, currentScanline%8);
-                    if(verticalFlip){
-                        lineNo = 7 - lineNo;
-                    }
+                    secondaryOAM[oamIndex].print();
 
-                    printf("ATTRIBUTES: %d\n", attribute);
-                    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
-                    unsigned char upperTile = readAddress(patternAddress);
-                    unsigned char lowerTile = readAddress(patternAddress + 8);
                     // Attribute - Flip
                     // attribute = 0;
-                    
-                    for(int patternBit = 0; patternBit < 8;  patternBit++){
-                        
-                        unsigned short palleteAddress = 0x3F10 | (attribute << 2) | ((lowerTile >> 7)<<1) | (upperTile>>7);
-                        if((lowerTile>>7)==0&&(upperTile>>7)==0){
-                            //Should be mirror
-                            palleteAddress = 0x3F00;
-                        }
-                        printf("PALLETE ADDRESS: %x\n", palleteAddress);
-                        char palleteIndex = readAddress(palleteAddress);
-                        //Need to evaluate priority here
-                        unsigned char x = secondaryOAM[oamIndex].x + patternBit;
-                        // unsigned char y = secondaryOAM[oamIndex].y;
-                        if(horizontalFlip){
-                            x = secondaryOAM[oamIndex].x + 7 - (patternBit);
-                        }
-                        printf("PALLETE INDEX: %d\n", palleteIndex);
-                        setPixel(x, currentScanline, palletes[palleteIndex&0x3F]);
-                        upperTile <<= 1;
-                        lowerTile <<= 1;
-                    }
-
+                    TileInfo tileInfo = fetchSpriteTile(oamIndex);
+                    renderTile(tileInfo);
                     //Implement priority
                 }
 
