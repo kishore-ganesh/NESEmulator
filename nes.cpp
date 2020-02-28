@@ -36,7 +36,7 @@ bool NES::shouldRender(){
 }
 
 void NES::ppuCycle(){
-    ppu->generateFrame(cpuCycles*3);
+    ppu->generateFrame(0);
 }
 
 void NES::cpuCycle(){
