@@ -463,7 +463,7 @@ bool PPU::shouldRender(){
 
 bool PPU::getCyclesLeft(){
     printf("PPU CYCLES LEFT: %d\n", cyclesLeft);
-return cyclesLeft > cyclesNeeded;
+return cyclesLeft > 30000;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables
