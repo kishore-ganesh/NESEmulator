@@ -36,6 +36,7 @@ unsigned char PPU::readAddress(unsigned short address)
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
+        printf("REPLICATED PALLETES\n");
         return  programPalletes[(address- 0x3520) % 0x20];
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
@@ -45,10 +46,15 @@ unsigned char PPU::readAddress(unsigned short address)
 void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
     if (address >= 0x2000 && address <= 0x2FFF){
+        if(address>0x23ff){
+            printf("WRITE EXCEED\n");
+        }
         vram[address - 0x2000] = value;
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
+        
+        printf("WRITE EXCEED\n");
         vram[address-0x3000] = value;
     }
 
@@ -58,6 +64,7 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
+        printf("REPLICATED PALLETES\n");
         programPalletes[(address-0x3F20)%0x20] = value;
         /* Return pallete -  */
     }
@@ -203,25 +210,32 @@ void PPU::fetchTile(int tileNumber){
     // printf("NAMETABLE OFFSET %d\n", nameTableOffset);
     //Check this again
     // short attributeNameTableAddress = (nameTableOffset % 32)/4 + (nameTableOffset/128)*8;
-    short attributeNameTableAddress = (((currentScanline/8)*32+tileNumber) % 32)/2 + (((currentScanline/8)*32+tileNumber)/64)*16;
-    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
-    if((attributeNameTableAddress + baseAttributeTableAddress) > 0x23ff){
-        printf("ATTRIBUTE ADDRESS: %x\n", baseAttributeTableAddress + attributeNameTableAddress);
-    }
+    // index = tileNumber/4, currentScanline/4
+    // (index-1)*8 + currentScanline/4
+    //That's where attribute from
+    //Offset is equal to (t-x*4)/4, currentScanline - (currentScanline/4)*4
+    short xIndex = tileNumber/4;
+    short yIndex = (currentScanline/8)/4;
+    unsigned short attributeOffset = (yIndex*8) + xIndex;
+    unsigned short attributeAddress = baseAttributeTableAddress + attributeOffset;
+    unsigned char attributeEntry = readAddress(attributeAddress);
     
-    short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
-    unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeTableAddressOffset);
+    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
+    
+    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
+
     // unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeNameTableAddress);
     char r, c;
-    r = ((attributeNameTableAddress/16)&0x01)?1:0;
+    c = (tileNumber - xIndex*4)/2;
+    r = (currentScanline/8 - yIndex*4)/2;
+
     // r = ((nameTableOffset%32)/4)/4;
 
-    c = (attributeNameTableAddress&0x01)?1:0;
     // r = (nameTableOffset/32) % 4;
     // c = ((nameTableOffset%32))%4;
     printf("ROWS: %d,  COLUMNS: %d\n", r, c);
     unsigned char offset = getOffset(r, c);
-    attribute = (attributeEntry & (0x03 << offset*2)) >> (offset*2); // check if this is correct for 2 tiles
+    attribute = (attributeEntry & (0x03 << (offset*2))) >> (offset*2); // check if this is correct for 2 tiles
     //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
     unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
     upperPattern&=(0x00FF);
@@ -281,8 +295,8 @@ void PPU::renderTile(TileInfo tileInfo){
         if(tileInfo.horizontalFlip){
             x = tileInfo.x + 7 - (patternBit);
         }
-        printf("PALLETE INDEX: %d\n", palleteIndex);
-        setPixel(x, tileInfo.y, palletes[palleteIndex&0x3F]);
+        
+        setPixel(x, tileInfo.y, palletes[palleteIndex]);
         tileInfo.upperPattern <<= 1;
         tileInfo.lowerPattern <<= 1;
     }
