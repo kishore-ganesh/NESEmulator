@@ -20,12 +20,12 @@ unsigned char Memory::readAddress(unsigned short address){
 
     else if(address>=0x2000&&address<=0x2007){
         return ppu->readRegister((Registers)(address - 0x2000));
-        cout << "PPU access" <<endl;
+        spdlog::info("PPU access");
     }
     // have mirroring
 
     else if(address==0x4016|| address == 0x4017){
-        cout << "INPUT" << endl;
+        spdlog::info("INPUT");
     }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
@@ -39,9 +39,9 @@ unsigned char Memory::readCHRAddress(unsigned short address){
 }
 
 void Memory::writeAddress(unsigned short address, char value){
-    printf("Writing to: %x\n",address);
+    spdlog::info("Writing to: {0:x}",address);
     if(address >= 0x2008 && address <= 0x3fff){
-        printf("Mirrored register access\n");
+        spdlog::info("Mirrored register access");
     }    
     if(address <= 0x1FFF){
         memory[address%0x800] = value;

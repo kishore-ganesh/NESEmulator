@@ -36,7 +36,7 @@ unsigned char PPU::readAddress(unsigned short address)
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
-        printf("REPLICATED PALLETES\n");
+        spdlog::info("REPLICATED PALLETES");
         return  programPalletes[(address- 0x3520) % 0x20];
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
@@ -47,14 +47,14 @@ void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
     if (address >= 0x2000 && address <= 0x2FFF){
         if(address>0x23ff){
-            printf("WRITE EXCEED\n");
+            spdlog::error("WRITE EXCEED");
         }
         vram[address - 0x2000] = value;
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
         
-        printf("WRITE EXCEED\n");
+        spdlog::info("WRITE EXCEED");
         vram[address-0x3000] = value;
     }
 
@@ -64,7 +64,7 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if(address >= 0x3520 && address <= 0x3FFF){
-        printf("REPLICATED PALLETES\n");
+        spdlog::info("REPLICATED PALLETES");
         programPalletes[(address-0x3F20)%0x20] = value;
         /* Return pallete -  */
     }
@@ -98,7 +98,7 @@ unsigned char PPU::readRegister(Registers reg){
             break;
         }
         case PPUDATA: {
-            printf("READING FROM PPU DATA\n");
+            spdlog::info("READING FROM PPU DATA");
             char increment = getIncrement();
             // unsigned char currentAddress = getRegister(PPUADDR);
             // setRegister(PPUADDR,currentAddress+increment);
@@ -111,9 +111,9 @@ unsigned char PPU::readRegister(Registers reg){
 }
 
 void PPU::writeOAM(unsigned char address, unsigned char value){
-    // printf("OAM WRITING in %x VALUE: %d\n ", address, value);
+    // printf("OAM WRITING in %x VALUE: %d ", address, value);
     if(address>255){
-        printf("OAM INVALID ADDRESS\n");
+        spdlog::error("OAM INVALID ADDRESS");
     }
     OAM[address] = value;
 }
@@ -123,13 +123,13 @@ void PPU::writeRegister(Registers reg, unsigned char value){
     setRegister(reg, value);
     switch(reg){
         case OAMADDR: {
-            printf("OAM ADDRESS SET: %x\n", value);
+            spdlog::info("OAM ADDRESS SET: {0:x}", value);
             setRegister(PPUADDR, value);
             break;
         }
         case OAMDATA:{
             unsigned char address = getRegister(OAMADDR);
-            printf("OAM ADDRESS: %d\n", address);
+            spdlog::info("OAM ADDRESS: {0:d}", address);
             writeOAM(address, value);
             setRegister(OAMADDR, address + 1);
             break;
@@ -144,11 +144,11 @@ void PPU::writeRegister(Registers reg, unsigned char value){
         case PPUADDR: {
             address = (address << 8) | value;
             address = (address%0x4000);
-            printf("PPU ADDRESS NOW: %x\n", address);
+            spdlog::info("PPU ADDRESS NOW: {0:x}", address);
             break;
         }
         case PPUDATA: {
-            printf("WRITING TO PPU DATA: %x\n", address);
+            spdlog::info("WRITING TO PPU DATA: {0:x}", address);
             writeAddress(address, value);
             char increment = getIncrement();
             // setRegister(PPUADDR, address + increment);
@@ -162,13 +162,13 @@ unsigned short PPU::getNameTableAddress(){
     char nameTableNumber = getRegister(PPUCTRL) & 0x03;
     short baseAddress = 0x2000;
     short address = baseAddress + ((nameTableNumber*4) << 8);
-    printf("NAMETABLE ADDRRESS: %x\n", address);
+    spdlog::info("NAMETABLE ADDRRESS: {0:x}", address);
     return address; //check
 }
 
 short PPU::getBasePatternTableAddress(bool background){
     char mask = 0x10;
-    printf("PPU CTRL %x\n", getRegister(PPUCTRL));
+    spdlog::info("PPU CTRL {0:x}", getRegister(PPUCTRL));
     if(!background){
         mask = 0x08;
         // return 0x0000;
@@ -203,11 +203,11 @@ void PPU::fetchTile(int tileNumber){
     // 
     short baseNameTableAddress = getNameTableAddress();
     short nameTableOffset = tileNumber + (currentScanline/8) * 32;
-    printf("NAMETABLE ADDRESS: %x\n", baseNameTableAddress+nameTableOffset);
+    spdlog::info("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
-    // printf("NAMETABLE OFFSET %d\n", nameTableOffset);
+    // printf("NAMETABLE OFFSET %d", nameTableOffset);
     //Check this again
     // short attributeNameTableAddress = (nameTableOffset % 32)/4 + (nameTableOffset/128)*8;
     // index = tileNumber/4, currentScanline/4
@@ -233,7 +233,7 @@ void PPU::fetchTile(int tileNumber){
 
     // r = (nameTableOffset/32) % 4;
     // c = ((nameTableOffset%32))%4;
-    printf("ROWS: %d,  COLUMNS: %d\n", r, c);
+    spdlog::info("ROWS: {0:d},  COLUMNS: {1:d}", r, c);
     unsigned char offset = getOffset(r, c);
     attribute = (attributeEntry & (0x03 << (offset*2))) >> (offset*2); // check if this is correct for 2 tiles
     //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
@@ -255,12 +255,12 @@ TileInfo PPU::fetchSpriteTile(int oamIndex){
     bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
     // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
 
-    // printf("LINENO: %d, CURRS: %d\n", lineNo, currentScanline%8);
+    // printf("LINENO: %d, CURRS: %d", lineNo, currentScanline%8);
     if(verticalFlip){
         lineNo = 7 - lineNo;
     }
 
-    // printf("ATTRIBUTES: %d\n", attribute);
+    // printf("ATTRIBUTES: %d", attribute);
     unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
     unsigned char upperTile = readAddress(patternAddress);
     unsigned char lowerTile = readAddress(patternAddress + 8);
@@ -287,7 +287,7 @@ void PPU::renderTile(TileInfo tileInfo){
             //Should be mirror
             palleteAddress = 0x3F00;
         }
-        printf("PALLETE ADDRESS: %x\n", palleteAddress);
+        spdlog::info("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress);
         //Need to evaluate priority here
         unsigned char x = tileInfo.x + patternBit;
@@ -305,10 +305,10 @@ void PPU::renderTile(TileInfo tileInfo){
 
 void PPU::generateFrame(int cycles){
     cyclesLeft += cycles;
-    printf("CURRENT CYCLE: %d, CYCLES LEFT: %d\n", currentCycle, cyclesLeft);
+    spdlog::info("CURRENT CYCLE: {0:d}, CYCLES LEFT: {1:d}", currentCycle, cyclesLeft);
     int regValue = readRegister(PPUCTRL);
-    printf("SPRITE MODE: %s\n", (regValue & 0x20)?"8x16":"8x8");
-    printf("SECONDARY OAM SIZE: %d\n", secondaryOAM.size());
+    spdlog::info("SPRITE MODE: {0}", (regValue & 0x20)?"8x16":"8x8");
+    spdlog::info("SECONDARY OAM SIZE: {0:d}", secondaryOAM.size());
 
     if(currentCycle==0){
         if(cyclesLeft>=1){
@@ -325,7 +325,7 @@ void PPU::generateFrame(int cycles){
             //Place it in the right place
     for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
                     //Should be absolute distance
-        printf("SPRITE OAM: %d %d\n", OAM[oamIndex], OAM[oamIndex+3]);
+        spdlog::info("SPRITE OAM: {0:d} {1:d}", OAM[oamIndex], OAM[oamIndex+3]);
         if((abs(currentScanline-OAM[oamIndex]))<8 && secondaryOAM.size() < 8){
                     //Add size check
             secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3]});
@@ -421,7 +421,7 @@ void PPU::generateFrame(int cycles){
             }
         }
         // currentScanline+=1;
-        printf("CURRENT SCANLINE: %d\n", currentScanline);
+        spdlog::info("CURRENT SCANLINE: {0:d}", currentScanline);
         if(currentScanline==261){
             currentScanline = -1;
             unsigned char status = getRegister(PPUSTATUS);
@@ -444,7 +444,7 @@ void PPU::generateFrame(int cycles){
     }
     if (currentCycle==321){
         if (cyclesLeft>=8){
-            printf("NEXT: %d\n", currentScanline);
+            spdlog::info("NEXT: {0:d}", currentScanline);
             addCycles(8);
             fetchTile(0);
         }
@@ -496,8 +496,8 @@ bool PPU::shouldRender(){
 }
 
 bool PPU::getCyclesLeft(){
-    printf("PPU CYCLES LEFT: %d\n", cyclesLeft);
-return cyclesLeft > 30000;
+    spdlog::info("PPU CYCLES LEFT: {0:d}", cyclesLeft);
+    return cyclesLeft > 30000;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

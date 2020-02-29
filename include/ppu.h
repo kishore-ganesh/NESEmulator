@@ -26,7 +26,7 @@ struct Sprite{
     unsigned char attributes;
     unsigned char x;
     void print(){
-        printf("SPRITE at %d, %d with tileIndex %d\n", x, y, tileIndex);
+        spdlog::info("SPRITE at {0:d}, {1:d} with tileIndex {2:d}", x, y, tileIndex);
     }
 };
 
