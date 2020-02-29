@@ -138,7 +138,7 @@ class PPU
         {0, 0, 0},
         {0, 0, 0},
     };
-    char programPalletes[16];
+    char programPalletes[32];
 
 public:
     PPU(Memory *memory, EdgeInterrupt *NMI);
