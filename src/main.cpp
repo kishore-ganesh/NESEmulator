@@ -4,23 +4,23 @@
 void handleLoggingLevel(char* arg){
     
     if(strcmp("-debug", arg)==0){
-        spdlog::info("Logging Mode: Debug");
+        SPDLOG_INFO("Logging Mode: Debug");
         spdlog::set_level(spdlog::level::debug);
     }
     else if(strcmp("-error", arg)==0){
-        spdlog::info("Logging Mode: Error");
+        SPDLOG_INFO("Logging Mode: Error");
         spdlog::set_level(spdlog::level::err);
     }
     else if(strcmp("-warn", arg)==0){
-        spdlog::info("Logging Mode: Warn");
+        SPDLOG_INFO("Logging Mode: Warn");
         spdlog::set_level(spdlog::level::warn);
     }
     else if(strcmp("-critical", arg)==0){
-        spdlog::info("Logging Mode: Critical");
+        SPDLOG_INFO("Logging Mode: Critical");
         spdlog::set_level(spdlog::level::critical);
     }
     else if(strcmp("-info", arg)==0){
-        spdlog::info("Logging Mode: Info");
+        SPDLOG_INFO("Logging Mode: Info");
         spdlog::set_level(spdlog::level::info);
     }
 }

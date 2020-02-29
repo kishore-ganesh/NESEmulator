@@ -33,10 +33,10 @@ void CPU::checkValueFlags(char value){
 }
 
 void CPU::printStatus(){
-    spdlog::info("Program Counter: {0:x}", PC);
-    spdlog::info("Stack pointer: {0:d}", SP);
-    spdlog::info("Registers: A: {0:d}, X: {1:d}, Y: {2:d}", A, X, Y);
-    spdlog::info("Flags: \n N: {0:d} \n Z: {1:d} \n  Carry: {2:d} \n Overflow: {3:d} \n Interrupt Disable: {4:d}\n", \
+    SPDLOG_INFO("Program Counter: {0:x}", PC);
+    SPDLOG_INFO("Stack pointer: {0:d}", SP);
+    SPDLOG_INFO("Registers: A: {0:d}, X: {1:d}, Y: {2:d}", A, X, Y);
+    SPDLOG_INFO("Flags: \n N: {0:d} \n Z: {1:d} \n  Carry: {2:d} \n Overflow: {3:d} \n Interrupt Disable: {4:d}\n", \
     getFlag(NEGATIVE),\
     getFlag(ZERO), \
     getFlag(CARRY), \
@@ -60,19 +60,19 @@ void CPU::writeAddress(unsigned short address, char value){
 }
 
 void CPU::readImmediate(unsigned short& PC, unsigned short& address){
-    spdlog::info("IMMEDIATE ");
+    SPDLOG_INFO("IMMEDIATE ");
     PC = PC + 1;
     address = PC;
 }
 
 void CPU::readZeroPage(unsigned short& PC, unsigned short& address){
-    spdlog::info("ZERO PAGE ");
+    SPDLOG_INFO("ZERO PAGE ");
     PC = PC + 1;
     address = (readAddress(PC))&0x00FF;
 }
 
 void CPU::readAbsolute(unsigned short& PC, unsigned short &address){
-    spdlog::info("ABSOLUTE ");
+    SPDLOG_INFO("ABSOLUTE ");
     PC = PC + 1;
     address = readLittleEndian(PC);
     PC = PC + 1;
@@ -80,14 +80,14 @@ void CPU::readAbsolute(unsigned short& PC, unsigned short &address){
 
 /* ZERO PAGE, X: X provided since in two instructions the X changes to Y */
 void CPU::readZeroPageX(unsigned short& PC, unsigned short& address, unsigned char X){
-    spdlog::info("ZEROPAGE X");
+    SPDLOG_INFO("ZEROPAGE X");
     PC = PC + 1;
     address = (readAddress(PC)+ X)&0x00FF;
     // address = readAddress((0x00FF)&address);
 }
 
 void CPU::readAbsoluteX(unsigned short &PC, unsigned short & address,unsigned char X){
-    spdlog::info("ABSOLUTE X ");
+    SPDLOG_INFO("ABSOLUTE X ");
     PC = PC + 1;
     address = readLittleEndian(PC) + X;
     PC = PC + 1;
@@ -144,7 +144,7 @@ void CPU::processInstruction(unsigned char instruction){
         /* Check addressing modes */
         switch(bbb){
             case 0x0: {
-                spdlog::info("(Indirect, X)") ;
+                SPDLOG_INFO("(Indirect, X)") ;
                 PC = PC + 1;
                 address = readAddress(PC);
                 address = readLittleEndian((address+X)&0x00FF);
@@ -163,7 +163,7 @@ void CPU::processInstruction(unsigned char instruction){
                 break;
             }
             case 0x4: {
-                spdlog::info("(Indirect, Y)") ;
+                SPDLOG_INFO("(Indirect, Y)") ;
                 PC = PC + 1;
                 address = (readAddress(PC)) & 0x00FF;
                 address = readLittleEndian(address) + Y;                
@@ -264,7 +264,7 @@ int CPU::cycle(){
     cycles = 0;
     short address;
     if(NMI.checkInterrupt()){
-        spdlog::info("NMI Interrupt occured");
+        SPDLOG_INFO("NMI Interrupt occured");
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
@@ -272,7 +272,7 @@ int CPU::cycle(){
         PC = address;
     }
     else if(!IRQ&&!getFlag(INT)){
-        spdlog::info("Interrupt occured");
+        SPDLOG_INFO("Interrupt occured");
         pushLittleEndian(PC);
         push(P);
         setFlag(INT, 1);
@@ -286,26 +286,26 @@ int CPU::cycle(){
 }
 void CPU::ORA(unsigned short address){
     char data = readAddress(address);
-    spdlog::info("ORA");
+    SPDLOG_INFO("ORA");
     A|=data;
     checkValueFlags(A);
 }
 
 void CPU::AND(unsigned short address){
     char data = readAddress(address);
-    spdlog::info("AND");
+    SPDLOG_INFO("AND");
     A&=data;
     checkValueFlags(A);
 }
 void CPU::EOR(unsigned short address){
     char data = readAddress(address);
-    spdlog::info("EOR");
+    SPDLOG_INFO("EOR");
     A^=data;
     checkValueFlags(A);
 }
 void CPU::ADC(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("ADC");
+    SPDLOG_INFO("ADC");
     short result = A + data+getFlag(CARRY);
     bool carryBit = result > 0xFF ? 1 : 0;
     bool overFlowBit = (result > 127 || result < -128);
@@ -315,7 +315,7 @@ void CPU::ADC(unsigned short address){
     setFlag(INTEGER_OVERFLOW, overFlowBit); //fix this and have carry
 }
 void CPU::SBC(unsigned short address){
-    spdlog::info("SBC");
+    SPDLOG_INFO("SBC");
     unsigned char data = readAddress(address);
     short result = A - data - !getFlag(CARRY);
     bool overFlowBit = (result > 127 || result < -128);
@@ -326,18 +326,18 @@ void CPU::SBC(unsigned short address){
     setFlag(CARRY, borrowBit);
 }
 void CPU::STA(unsigned short address){
-    spdlog::info("STA");
+    SPDLOG_INFO("STA");
     writeAddress(address, A);  // check this
 }
 void CPU::LDA(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("LDA");
+    SPDLOG_INFO("LDA");
     A = data; //check if flag is to be set here
     checkValueFlags(A);
 }
 void CPU::CMP(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("CMP");
+    SPDLOG_INFO("CMP");
     bool borrowBit = A >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(A - data);
@@ -359,7 +359,7 @@ void CPU::ASL(unsigned short address, bool accumulator){
         checkValueFlags(data << 1);
     }
     setFlag(CARRY, carryBit);
-    spdlog::info("ASL");
+    SPDLOG_INFO("ASL");
 }
 void CPU::ROL(unsigned short address, bool accumulator){
     bool zeroBit = getFlag(CARRY);
@@ -381,7 +381,7 @@ void CPU::ROL(unsigned short address, bool accumulator){
         checkValueFlags(data);
     }
     setFlag(CARRY, carryBit);
-    spdlog::info("ROL");
+    SPDLOG_INFO("ROL");
 }
 void CPU::LSR(unsigned short address, bool accumulator){
     bool nextCarryBit = 0;
@@ -398,7 +398,7 @@ void CPU::LSR(unsigned short address, bool accumulator){
         checkValueFlags(data);
     }
     setFlag(CARRY, nextCarryBit);
-    spdlog::info("LSR");
+    SPDLOG_INFO("LSR");
 }
 void CPU::ROR(unsigned short address, bool accumulator){
     bool previousCarryBit = getFlag(CARRY);
@@ -420,16 +420,16 @@ void CPU::ROR(unsigned short address, bool accumulator){
         checkValueFlags(data);
     }
     setFlag(CARRY, nextCarryBit);
-    spdlog::info("ROR");
+    SPDLOG_INFO("ROR");
 }
 void CPU::STX(unsigned short address, bool accumulator){
     writeAddress(address, X);
-    spdlog::info("STX"); //check if flag is set here
+    SPDLOG_INFO("STX"); //check if flag is set here
 }
 
 void CPU::LDX(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("LDX");
+    SPDLOG_INFO("LDX");
     X = data; //check if flag to be set here
     checkValueFlags(X);
 }
@@ -437,18 +437,18 @@ void CPU::DEC(unsigned short address, bool accumulator){
     unsigned char data = readAddress(address);
     writeAddress(address, data - 1);
     checkValueFlags(data -1);
-    spdlog::info("DEC");
+    SPDLOG_INFO("DEC");
 }
 void CPU::INC(unsigned short address, bool accumulator){
     unsigned char data = readAddress(address);
     writeAddress(address, data + 1);
     checkValueFlags(data + 1);
-    spdlog::info("INC");
+    SPDLOG_INFO("INC");
 }
 
 void CPU::BIT(unsigned short address){
     // Check for immediate instruction
-    spdlog::info("BIT");
+    SPDLOG_INFO("BIT");
     unsigned char data = readAddress(address);
     bool zeroBit, overflowBit, negativeBit;
     zeroBit = data & A > 0 ? 1 : 0;
@@ -460,7 +460,7 @@ void CPU::BIT(unsigned short address){
 }
 
 void CPU::JMP(unsigned short address){
-    spdlog::info("JMP");
+    SPDLOG_INFO("JMP");
     if(!((address&0x00FF)==0x00FF)){
         PC = readLittleEndian(address) - 1;
     }
@@ -472,26 +472,26 @@ void CPU::JMP(unsigned short address){
 }
 
 void CPU::JMP_ABS(unsigned short address){
-    spdlog::info("JMP_ABS");
+    SPDLOG_INFO("JMP_ABS");
     PC = address - 1;
 
     //check for page boundaries
 }
 
 void CPU::STY(unsigned short address){
-    spdlog::info("STY");
+    SPDLOG_INFO("STY");
     writeAddress(address, Y);
 }
 
 void CPU::LDY(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("LDY");
+    SPDLOG_INFO("LDY");
     Y = data;
     checkValueFlags(data);
 }
 
 void CPU::CPY(unsigned short address){
-    spdlog::info("CPY");
+    SPDLOG_INFO("CPY");
     unsigned char data = readAddress(address);
     bool borrowBit = Y >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
@@ -500,7 +500,7 @@ void CPU::CPY(unsigned short address){
 }
 void CPU::CPX(unsigned short address){
     unsigned char data = readAddress(address);
-    spdlog::info("CPX");
+    SPDLOG_INFO("CPX");
     bool borrowBit = X >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(X - data);
@@ -509,7 +509,7 @@ void CPU::CPX(unsigned short address){
 void CPU::BRANCH(masks flag, bool bit){
     PC = PC + 1;
     char data = readAddress(PC);
-    spdlog::info("BRANCH");
+    SPDLOG_INFO("BRANCH");
     if(getFlag(flag)==bit){
         PC = PC + data; //chedck this
     }
@@ -545,7 +545,7 @@ short CPU::popLittleEndian(){
 }
 
 void CPU::BRK(){
-    spdlog::info("BRK");
+    SPDLOG_INFO("BRK");
     setFlag(INT, 1);
     IRQ = false;
     pushLittleEndian(PC+2);
@@ -554,7 +554,7 @@ void CPU::BRK(){
 }
 
 void CPU::JSR(){
-    spdlog::info("JSR");
+    SPDLOG_INFO("JSR");
     pushLittleEndian(PC+2);
     PC = PC + 1;
     short address = readLittleEndian(PC);
@@ -564,7 +564,7 @@ void CPU::JSR(){
 }
 
 void CPU::RTI(){
-    spdlog::info("RTI");
+    SPDLOG_INFO("RTI");
     P = pop();
     PC = popLittleEndian() -1;
     IRQ = true;
@@ -573,145 +573,145 @@ void CPU::RTI(){
 }
 
 void CPU::RTS(){
-    spdlog::info("RTS");
+    SPDLOG_INFO("RTS");
     PC = popLittleEndian();
     cycles+=1;
     // PC = PC + 1; //check this
 }    
 
 void CPU::PHP(){
-    spdlog::info("PHP");
+    SPDLOG_INFO("PHP");
     push(P);
     cycles+=1;
 }
 
 void CPU::PLP(){
-    spdlog::info("PLP");
+    SPDLOG_INFO("PLP");
     P = pop();
     cycles+=1;
 }
 
 void CPU::PHA(){
-    spdlog::info("PHA");
+    SPDLOG_INFO("PHA");
     push(A);
     cycles+=1;
 }
 
 void CPU::PLA(){
-    spdlog::info("PLA");
+    SPDLOG_INFO("PLA");
     A = pop();
     cycles+=1;
 }
 
 void CPU::DEY(){
-    spdlog::info("DEY");
+    SPDLOG_INFO("DEY");
     Y = Y - 1;
     checkValueFlags(Y);
     cycles+=1;
 }
 
 void CPU::TAY(){
-    spdlog::info("TAY");
+    SPDLOG_INFO("TAY");
     Y = A;
     checkValueFlags(Y);
     cycles+=1;
 }
 
 void CPU::INY(){
-    spdlog::info("INY");
+    SPDLOG_INFO("INY");
     Y = Y + 1;
     checkValueFlags(Y);
     cycles+=1;
 }
 
 void CPU::INX(){
-    spdlog::info("INX");
+    SPDLOG_INFO("INX");
     X = X + 1;
     checkValueFlags(X);
     cycles+=1;
 }
 
 void CPU::CLC(){
-    spdlog::info("CLC");
+    SPDLOG_INFO("CLC");
     setFlag(CARRY, 0);
     cycles+=1;
 }
 void CPU::SEC(){
-    spdlog::info("SEC");
+    SPDLOG_INFO("SEC");
     setFlag(CARRY, 1);
     cycles+=1;
 }
 void CPU::CLI(){
-    spdlog::info("CLI");
+    SPDLOG_INFO("CLI");
     setFlag(INT, 0);
     cycles+=1;
 }
 
 void CPU::SEI(){
-    spdlog::info("SEI");
+    SPDLOG_INFO("SEI");
     setFlag(INT, 1);
     cycles+=1;
 }
 
 void CPU::TYA(){
-    spdlog::info("TYA");
+    SPDLOG_INFO("TYA");
     A = Y;
     checkValueFlags(A);
     cycles+=1;
 }   
 
 void CPU::CLV(){
-    spdlog::info("CLV");
+    SPDLOG_INFO("CLV");
     setFlag(INTEGER_OVERFLOW, 0);
     cycles+=1;
 }
 
 void CPU::CLD(){
-    spdlog::info("CLD");  
+    SPDLOG_INFO("CLD");  
     cycles+=1;
 }
 
 
 void CPU::SED(){
-    spdlog::info("SED");
+    SPDLOG_INFO("SED");
     cycles+=1;
 }
 
 void CPU::TXA(){
-    spdlog::info("TXA");
+    SPDLOG_INFO("TXA");
     A = X;
     checkValueFlags(A);
     cycles+=1;
 }
 
 void CPU::TXS(){
-    spdlog::info("TXS");
+    SPDLOG_INFO("TXS");
     SP = X;
     cycles+=1;
 }
 
 void CPU::TAX(){
-    spdlog::info("TAX");
+    SPDLOG_INFO("TAX");
     X = A;
     checkValueFlags(X);
     cycles+=1;
 }
 
 void CPU::TSX(){
-    spdlog::info("TSX");
+    SPDLOG_INFO("TSX");
     X = SP;
     checkValueFlags(X);
     cycles+=1;
 }
 
 void CPU::DEX(){
-    spdlog::info("DEX");
+    SPDLOG_INFO("DEX");
     X = X - 1;
     checkValueFlags(X);
     cycles+=1;
 }
 
 void CPU::NOP(){
-    spdlog::info("NOP"); 
+    SPDLOG_INFO("NOP"); 
     cycles+=1;
 }

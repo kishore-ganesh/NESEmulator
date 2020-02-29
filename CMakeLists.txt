@@ -9,6 +9,7 @@ set(SOURCES src/ppu.cpp src/nes.cpp src/cpu.cpp src/main.cpp src/memory.cpp
 add_executable(nes ${SOURCES})
 string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
 target_link_libraries(nes ${SDL2_LIBRARIES} spdlog::spdlog)
+add_compile_definitions(WARN)
 target_compile_options(nes PRIVATE -Wall)
 message(STATUS "CPPFLAGS" ${CMAKE_CPP_FLAGS})
 
