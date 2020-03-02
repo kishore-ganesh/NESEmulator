@@ -53,4 +53,4 @@ unsigned char Cartridge::readCHRAddress(unsigned short address){
 
 void Cartridge::write(unsigned short address, char value){
     PRG_ROM[address] = value;
-}
+}   

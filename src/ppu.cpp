@@ -35,9 +35,9 @@ unsigned char PPU::readAddress(unsigned short address)
         /*  retyurn pallete */
     }
 
-    if(address >= 0x3520 && address <= 0x3FFF){
+    if(address >= 0x3F20 && address <= 0x3FFF){
         SPDLOG_INFO("REPLICATED PALLETES");
-        return  programPalletes[(address- 0x3520) % 0x20];
+        return  programPalletes[(address- 0x3F20) % 0x20];
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
     }
@@ -46,7 +46,8 @@ unsigned char PPU::readAddress(unsigned short address)
 void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
     if (address >= 0x2000 && address <= 0x2FFF){
-        if(address>0x23ff){
+        // spdlog::error("WRITE EXCEED");
+        if(address>0x27ff){
             spdlog::error("WRITE EXCEED");
         }
         vram[address - 0x2000] = value;
@@ -54,7 +55,8 @@ void PPU::writeAddress(unsigned short address, char value){
 
     if (address >= 0x3000 && address <= 0x3EFF){
         
-        SPDLOG_INFO("WRITE EXCEED");
+        spdlog::error("WRITE EXCEED");
+        // SPDLOG_INFO("WRITE EXCEED");
         vram[address-0x3000] = value;
     }
 
@@ -63,8 +65,9 @@ void PPU::writeAddress(unsigned short address, char value){
         /*  retyurn pallete */
     }
 
-    if(address >= 0x3520 && address <= 0x3FFF){
-        SPDLOG_INFO("REPLICATED PALLETES");
+    if(address >= 0x3F20 && address <= 0x3FFF){
+        spdlog::error("REPLICATED PALLETES");
+        // SPDLOG_INFO("REPLICATED PALLETES");
         programPalletes[(address-0x3F20)%0x20] = value;
         /* Return pallete -  */
     }
