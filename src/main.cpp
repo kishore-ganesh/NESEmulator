@@ -29,6 +29,7 @@ int main(int argc, char* argv[]){
     if(argc>2){
         handleLoggingLevel(argv[2]);
     }
+    // spdlog::critical("{0:d}", SPDLOG_ACTIVE_LEVEL);
     NES nes(argv[1]);
     SDLHandler handler(&nes);
     handler.begin();

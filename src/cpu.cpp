@@ -59,6 +59,7 @@ void CPU::writeAddress(unsigned short address, char value){
     memory->writeAddress(address, value);
 }
 
+//Address set to PC for uniform access
 void CPU::readImmediate(unsigned short& PC, unsigned short& address){
     SPDLOG_INFO("IMMEDIATE ");
     PC = PC + 1;
@@ -306,10 +307,13 @@ void CPU::EOR(unsigned short address){
 void CPU::ADC(unsigned short address){
     unsigned char data = readAddress(address);
     SPDLOG_INFO("ADC");
+    SPDLOG_INFO("{0:d}",data);
     short result = A + data+getFlag(CARRY);
     bool carryBit = result > 0xFF ? 1 : 0;
-    bool overFlowBit = (result > 127 || result < -128);
-    A = A + data + getFlag(CARRY);
+    char charResult = A + (char)data + getFlag(CARRY);
+    bool overFlowBit = ((char)A>0&&(char)data>0&&charResult < 0) || ((char)A < 0&& (char)data< 0&&charResult > 0);
+    A = A + (char)data + getFlag(CARRY);
+    SPDLOG_INFO("A is now: {0:d}",A);
     checkValueFlags(A);
     setFlag(CARRY, carryBit);
     setFlag(INTEGER_OVERFLOW, overFlowBit); //fix this and have carry
@@ -318,12 +322,24 @@ void CPU::SBC(unsigned short address){
     SPDLOG_INFO("SBC");
     unsigned char data = readAddress(address);
     short result = A - data - !getFlag(CARRY);
-    bool overFlowBit = (result > 127 || result < -128);
-    bool borrowBit = result >= 0 ? 1: 0;
-    A = A - data - !getFlag(CARRY);
+    char charResult = A - (char)data - !getFlag(CARRY);
+    bool overFlowBit = ((char)A > 0 && (char)data < 0 && charResult < 0) || ((char)A < 0 && (char)data > 0 && charResult > 0);
+    SPDLOG_INFO("{0:d}",data);
+    // bool borrowBit = A > data ? 0;
+    //Short won't show overflow
+    unsigned char cmpData = data + !getFlag(CARRY);
+    if(A < cmpData){
+        setFlag(CARRY, 0);
+    }
+    else{
+        setFlag(CARRY, 1);
+    }
+    A = A - cmpData;
+    SPDLOG_INFO("A is now: {0:d}",A);
     checkValueFlags(A);
     setFlag(INTEGER_OVERFLOW, overFlowBit);
-    setFlag(CARRY, borrowBit);
+    
+    
 }
 void CPU::STA(unsigned short address){
     SPDLOG_INFO("STA");
@@ -449,12 +465,17 @@ void CPU::INC(unsigned short address, bool accumulator){
 void CPU::BIT(unsigned short address){
     // Check for immediate instruction
     SPDLOG_INFO("BIT");
+    if(address == PC){
+        SPDLOG_INFO("BIT IMMEDIATE");
+    }
     unsigned char data = readAddress(address);
     bool zeroBit, overflowBit, negativeBit;
-    zeroBit = data & A > 0 ? 1 : 0;
+    zeroBit = data & A == 0 ? 1 : 0;
     negativeBit = data & 0x80;
-    overflowBit = data & 0x70;
-    setFlag(ZERO, data & A);
+    overflowBit = (data & 0x40);
+    SPDLOG_INFO("BIT Data is {}", data & 0x8D);
+    SPDLOG_INFO("BIT negativeBit: {0:b}, overflowBit: {0:d}", negativeBit, 0x8D & 0x40);
+    setFlag(ZERO, (data & A)==0);
     setFlag(INTEGER_OVERFLOW, overflowBit);
     setFlag(NEGATIVE, negativeBit);
 }
@@ -494,6 +515,10 @@ void CPU::CPY(unsigned short address){
     SPDLOG_INFO("CPY");
     unsigned char data = readAddress(address);
     bool borrowBit = Y >= data ? 1: 0;
+    bool zeroBit = false;
+    if(Y==data){
+        zeroBit = true;
+    }
     setFlag(CARRY, borrowBit);
     checkValueFlags(Y - data);
 

@@ -497,7 +497,7 @@ bool PPU::shouldRender(){
 
 bool PPU::getCyclesLeft(){
     SPDLOG_INFO("PPU CYCLES LEFT: {0:d}", cyclesLeft);
-    return cyclesLeft > 30000;
+    return cyclesLeft > 80000;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

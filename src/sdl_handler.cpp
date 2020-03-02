@@ -37,6 +37,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
             // SDL_RenderDrawPoint(renderer, x, y);
         }
     }
+    //Check this
     void* destPixels;
     int pitch;
     SDL_LockTexture(texture, NULL, &destPixels, &pitch);

@@ -10,6 +10,87 @@ void clearFlags(NES& nes){
             nes.cpu->setFlag(flag, 0);
     }
 }
+
+void ADC(NES& nes, int a, int b){
+    nes.cpu->A = a;
+    nes.cpu->writeAddress(0x0700, b);
+    nes.cpu->ADC(0x0700);
+}
+
+void SBC(NES& nes, int a, int b){
+    clearFlags(nes);
+    nes.cpu->A = a;
+    nes.cpu->writeAddress(0x0700, b);
+    nes.cpu->SBC(0x0700);
+}
+
+void ADCTest(NES& nes){
+    unsigned char firstOps[] = {80, 80, 80,80, 208, 208, 208, 208};
+    unsigned char secondOps[] = {16, 80, 144, 208, 16, 80, 144, 208};
+    bool carryRes[] = {false, false, false, true, false, true, true, true};
+    bool overFlowRes[] = {false, true, false, false, false, false, true, false};
+    clearFlags(nes);
+    for(int i = 0; i < 8; i++){
+        ADC(nes, firstOps[i], secondOps[i]);
+        if(nes.cpu->getFlag(CPU::CARRY)!=carryRes[i]){
+            printf("INCORRECT CARRY FLAG ADC\n");
+            break;
+        }
+        if(nes.cpu->getFlag(CPU::INTEGER_OVERFLOW)!=overFlowRes[i]){
+            printf("INCORRECT OVERFLOW FLAG ADC\n");
+            break;
+        }
+        clearFlags(nes);
+    }
+}
+
+void SBCTest(NES& nes){
+    unsigned char firstOps[] = {80, 80, 80,80, 208, 208, 208, 208};
+    unsigned char secondOps[] = {240, 176, 112, 48, 240, 176, 112, 48};
+    bool carryRes[] = {false, false, false, true, false, true, true, true};
+    bool overFlowRes[] = {false, true, false, false, false, false, true, false};
+    clearFlags(nes);
+    for(int i = 0; i < 8; i++){
+        SBC(nes, firstOps[i], secondOps[i]);
+        if(nes.cpu->getFlag(CPU::CARRY)!=carryRes[i]){
+            printf("INCORRECT CARRY FLAG SBC\n");
+            break;
+        }
+        if(nes.cpu->getFlag(CPU::INTEGER_OVERFLOW)!=overFlowRes[i]){
+            printf("INCORRECT OVERFLOW FLAG SBC\n");
+            break;
+        }
+        clearFlags(nes);
+    }
+}
+
+void CMPTest(NES& nes){
+    nes.cpu->A = 1;
+    nes.cpu->writeAddress(0x0700, 0xFF);
+    nes.cpu->CMP(0x0700);
+    if(nes.cpu->getFlag(CPU::CARRY)){
+        printf("INCORRECT CMP CARRY\n");
+        return;
+    }
+    if(nes.cpu->getFlag(CPU::NEGATIVE)){
+        printf("INCORRECT CMP NEGATIVE\n");
+        return;
+    }
+
+    nes.cpu->A = 0x7F;
+    nes.cpu->writeAddress(0x0700, 0x80);
+    nes.cpu->CMP(0x0700);
+    if(nes.cpu->getFlag(CPU::CARRY)){
+        printf("INCORRECT CMP CARRY\n");
+        return;
+    }
+    if(!nes.cpu->getFlag(CPU::NEGATIVE)){
+        printf("INCORRECT CMP NEGATIVE\n");
+        return;
+    }
+
+}
+
 int main(int argc, char *argv[])
 {
     NES nes(argv[1]);
@@ -62,8 +143,9 @@ int main(int argc, char *argv[])
 
     clearFlags(nes);
     nes.cpu->A = 0x8D;
-    nes.cpu->BIT(0x8D);
-    if(!(nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE) && !nes.cpu->getFlag(CPU::INTEGER_OVERFLOW))){
+    nes.cpu->writeAddress(0x0700,0x8D);
+    nes.cpu->BIT(0x0700);
+    if(!(!nes.cpu->getFlag(CPU::ZERO)&&nes.cpu->getFlag(CPU::NEGATIVE) && !nes.cpu->getFlag(CPU::INTEGER_OVERFLOW))){
         cout << "BIT ERROR" << endl;
     }
     
@@ -130,6 +212,10 @@ int main(int argc, char *argv[])
         cout << "LSR sign error" << endl;
     }
 
+    ADCTest(nes);
+
+    SBCTest(nes);
+    CMPTest(nes);
     
 
 
