@@ -49,6 +49,10 @@ struct TileInfo{
 };
 class PPU
 {
+    enum class Mirroring{
+        HORIZONTAL,
+        VERTICAL
+    } mirroringMode;
     bool renderFlag;
     unsigned char vram[2 * 1024];
     char registers[8];
@@ -170,6 +174,7 @@ public:
     void displayFrame();
     bool shouldRender();
     bool getCyclesLeft();
+    void setMirroringMode(bool mode);
 };
 
 /*

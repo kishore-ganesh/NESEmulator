@@ -11,12 +11,14 @@ struct iNES_Header{
 class Cartridge {
     char PRG_ROM[32768];
     char CHR_ROM[8192]; //check this
+    iNES_Header header;
     public:
     Cartridge(char* path);
     unsigned char readPRGAddress(unsigned short address);
     unsigned char readCHRAddress(unsigned short address);
     void write(unsigned short address, char value);
     void printHeader(iNES_Header header);
+    bool getMirroringMode();
 };
 
 #endif

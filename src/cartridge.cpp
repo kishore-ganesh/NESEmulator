@@ -3,7 +3,6 @@
 
 Cartridge::Cartridge(char *path)
 {
-    iNES_Header header;
     FILE *rom = fopen(path, "r");
     fread(&header, sizeof(header), 1, rom);
     printHeader(header);
@@ -14,6 +13,7 @@ Cartridge::Cartridge(char *path)
 
     long pos = ftell(rom);
     fread(PRG_ROM, header.prgSize * 0x4000, 1, rom);
+    //This done due to mirroring
     if (header.prgSize == 1)
     {
         fseek(rom, pos, SEEK_SET);
@@ -54,3 +54,7 @@ unsigned char Cartridge::readCHRAddress(unsigned short address){
 void Cartridge::write(unsigned short address, char value){
     PRG_ROM[address] = value;
 }   
+
+bool Cartridge::getMirroringMode(){
+    return (header.flag[0] & 0x01) >> 2;
+}

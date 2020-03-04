@@ -24,11 +24,27 @@ unsigned char PPU::readAddress(unsigned short address)
         return memory->readCHRAddress(address);
     }
     if (address >= 0x2000 && address <= 0x2FFF){
-        return vram[address - 0x2000];
+        SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
+        switch(mirroringMode){
+            case Mirroring::VERTICAL: {
+                unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
+                unsigned short offset = (address % 0x400);
+                return vram[baseAddress + offset];
+                break;
+            }
+            case Mirroring::HORIZONTAL: {
+                unsigned short baseAddress = ((address <= 0x2400) || (address >= 0x2800 && address <= 0x2c00) ) ? 0x000: 0x400;
+                unsigned short offset = (address % 0x400);
+                return vram[baseAddress + offset];
+                break;
+            }
+        }
+        // return vram[address - 0x2000];
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
-        return vram[address-0x1000];
+        spdlog::info("Accessing weird");
+        return readAddress(address - 0x1000);
     }
     if (address>=0x3F00&&address<=0x3F1F){
         return programPalletes[address-0x3F00];
@@ -47,17 +63,34 @@ void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
     if (address >= 0x2000 && address <= 0x2FFF){
         // spdlog::error("WRITE EXCEED");
-        if(address>0x27ff){
-            spdlog::error("WRITE EXCEED");
+        // if(address>0x27ff){
+        //     spdlog::error("WRITE EXCEED");
+        // }
+        // vram[address - 0x2000] = value;
+        SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
+        switch(mirroringMode){
+            case Mirroring::VERTICAL: {
+                unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
+                unsigned short offset = (address % 0x400);
+                vram[baseAddress + offset]  = value;
+                break;
+            }
+            case Mirroring::HORIZONTAL: {
+                unsigned short baseAddress = ((address <= 0x2400) || (address >= 0x2800 && address <= 0x2c00) ) ? 0x000: 0x400;
+                unsigned short offset = (address % 0x400);
+                vram[baseAddress + offset] = value;
+                break;
+            }
         }
-        vram[address - 0x2000] = value;
+        
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
         
         spdlog::error("WRITE EXCEED");
         // SPDLOG_INFO("WRITE EXCEED");
-        vram[address-0x3000] = value;
+        writeAddress(address - 0x1000, value);
+        // vram[address-0x3000] = value;
     }
 
     if (address>=0x3F00&&address<=0x3F1F){
@@ -496,6 +529,10 @@ std::vector<std::vector<RGB>> PPU::getFrame(){
 }
 bool PPU::shouldRender(){
     return renderFlag && currentScanline == 240;
+}
+
+void PPU::setMirroringMode(bool mode){
+    mirroringMode = mode ? Mirroring::VERTICAL : Mirroring::HORIZONTAL;
 }
 
 bool PPU::getCyclesLeft(){

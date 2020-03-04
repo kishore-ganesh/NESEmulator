@@ -9,6 +9,7 @@ Memory::Memory(char* path){
 
 void Memory::setPPU(PPU* ppu){
     this->ppu = ppu;
+    ppu->setMirroringMode(cartridge->getMirroringMode());
 }
 unsigned char Memory::readAddress(unsigned short address){
     if(address<=0x1FFF){
@@ -21,6 +22,9 @@ unsigned char Memory::readAddress(unsigned short address){
     else if(address>=0x2000&&address<=0x2007){
         return ppu->readRegister((Registers)(address - 0x2000));
         SPDLOG_INFO("PPU access");
+    }
+    else if(address >= 0x2008 && address <= 0x3FFF){
+        return ppu->readRegister((Registers)(address % 8));
     }
     // have mirroring
 
@@ -53,8 +57,12 @@ void Memory::writeAddress(unsigned short address, char value){
         ppu->writeRegister((Registers)(address-0x2000), value);
     }
 
+    else if(address >= 0x2008 && address <= 0x3FFF){
+        ppu->writeRegister((Registers)(address % 8), value);
+    }
 
-    // Have mirroring here
+
+    // Have mirroring here  
     else if(address == 0x4014){
         OAMDMA(value);
     }
