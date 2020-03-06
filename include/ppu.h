@@ -25,6 +25,7 @@ struct Sprite{
     unsigned char tileIndex;
     unsigned char attributes;
     unsigned char x;
+    unsigned char index;
     void print(){
         SPDLOG_INFO("SPRITE at {0:d}, {1:d} with tileIndex {2:d}", x, y, tileIndex);
     }
@@ -45,6 +46,7 @@ struct TileInfo{
     int x;
     bool horizontalFlip;
     bool background;
+    unsigned char spriteIndex;
 
 };
 class PPU

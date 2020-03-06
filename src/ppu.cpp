@@ -47,13 +47,19 @@ unsigned char PPU::readAddress(unsigned short address)
         return readAddress(address - 0x1000);
     }
     if (address>=0x3F00&&address<=0x3F1F){
+        switch(address){
+            case 0x3F10: {address = 0x3F00; break;}
+            case 0x3F14: {address = 0x3F04; break;}
+            case 0x3F18: {address = 0x3F08; break;}
+            case 0x3F1c: {address = 0x3F0C; break;}
+        }
         return programPalletes[address-0x3F00];
         /*  retyurn pallete */
     }
 
     if(address >= 0x3F20 && address <= 0x3FFF){
         SPDLOG_INFO("REPLICATED PALLETES");
-        return  programPalletes[(address- 0x3F20) % 0x20];
+        return  readAddress((address- 0x3F20) % 0x20 + 0x3F00);
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
     }
@@ -94,6 +100,12 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if (address>=0x3F00&&address<=0x3F1F){
+        switch(address){
+            case 0x3F10: {address = 0x3F00; break;}
+            case 0x3F14: {address = 0x3F04; break;}
+            case 0x3F18: {address = 0x3F08; break;}
+            case 0x3F1c: {address = 0x3F0C; break;}
+        }
         programPalletes[address-0x3F00] = value;
         /*  retyurn pallete */
     }
@@ -101,7 +113,8 @@ void PPU::writeAddress(unsigned short address, char value){
     if(address >= 0x3F20 && address <= 0x3FFF){
         spdlog::error("REPLICATED PALLETES");
         // SPDLOG_INFO("REPLICATED PALLETES");
-        programPalletes[(address-0x3F20)%0x20] = value;
+        writeAddress((address- 0x3F20) % 0x20 + 0x3F00, value);
+        // programPalletes[(address-0x3F20)%0x20] = value;
         /* Return pallete -  */
     }
 }
@@ -307,7 +320,8 @@ TileInfo PPU::fetchSpriteTile(int oamIndex){
         currentScanline,
         secondaryOAM[oamIndex].x,
         horizontalFlip,
-        false
+        false,
+        secondaryOAM[oamIndex].index
     };
     return tileInfo;
 }
@@ -319,10 +333,10 @@ void PPU::renderTile(TileInfo tileInfo){
     }
     for(int patternBit = 0; patternBit < 8;  patternBit++){   
         unsigned short palleteAddress = baseAddress | (tileInfo.attribute << 2) | ((tileInfo.lowerPattern >> 7)<<1) | (tileInfo.upperPattern>>7);
-        if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
-            //Should be mirror
-            palleteAddress = 0x3F00;
-        }
+        // if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
+        //     //Should be mirror
+        //     palleteAddress = 0x3F00;
+        // }
         SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress);
         //Need to evaluate priority here
@@ -331,7 +345,11 @@ void PPU::renderTile(TileInfo tileInfo){
         if(tileInfo.horizontalFlip){
             x = tileInfo.x + 7 - (patternBit);
         }
-        
+        if(!tileInfo.background && tileInfo.spriteIndex == 0 && palletes[palleteIndex]==getPixel(x, tileInfo.y)){
+            SPDLOG_INFO("SPRITE ZERO HIT");
+            unsigned char ppuStatus = getRegister(PPUSTATUS);
+            setRegister(PPUSTATUS, ppuStatus |= 0x20);
+        }
         setPixel(x, tileInfo.y, palletes[palleteIndex]);
         tileInfo.upperPattern <<= 1;
         tileInfo.lowerPattern <<= 1;
@@ -348,6 +366,10 @@ void PPU::generateFrame(int cycles){
 
     if(currentCycle==0){
         if(cyclesLeft>=1){
+            if(currentScanline==-1){
+                unsigned char ppuStatus = getRegister(PPUSTATUS);
+                setRegister(PPUSTATUS, ppuStatus & ~(0x20));
+            }
             addCycles(1);
             renderFlag = false;
         }
@@ -364,7 +386,7 @@ void PPU::generateFrame(int cycles){
         SPDLOG_INFO("SPRITE OAM: {0:d} {1:d}", OAM[oamIndex], OAM[oamIndex+3]);
         if((abs(currentScanline-OAM[oamIndex]))<8 && secondaryOAM.size() < 8){
                     //Add size check
-            secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3]});
+            secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
         }
     }
     if(currentCycle>=1&&currentCycle<=256){
