@@ -70,7 +70,7 @@ void CPU::writeAddress(unsigned short address, char value){
     if(address == 0x4016){
         shouldCaptureInput = value & 0x01;
         stopCaptureInput = !shouldCaptureInput;
-        spdlog::info("SHOULD CAPTURE INPUT: {0:b}",shouldCaptureInput);
+        SPDLOG_INFO("SHOULD CAPTURE INPUT: {0:b}",shouldCaptureInput);
     }
 
     memory->writeAddress(address, value);

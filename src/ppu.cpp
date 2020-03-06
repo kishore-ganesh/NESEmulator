@@ -43,7 +43,7 @@ unsigned char PPU::readAddress(unsigned short address)
     }
 
     if (address >= 0x3000 && address <= 0x3EFF){
-        spdlog::info("Accessing weird");
+        SPDLOG_INFO("Accessing weird");
         return readAddress(address - 0x1000);
     }
     if (address>=0x3F00&&address<=0x3F1F){

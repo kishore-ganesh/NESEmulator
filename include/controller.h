@@ -19,6 +19,7 @@ class Controller{
     };
     using KEYMAP = std::map<SDL_Scancode, ButtonMasks>;
     KEYMAP keyMap;
+    std::map<SDL_Scancode, std::string> debugMap;
     public:
     Controller(){
         keyMap = {
@@ -29,7 +30,18 @@ class Controller{
             {SDL_SCANCODE_DOWN, ButtonMasks::DOWN},
             {SDL_SCANCODE_LEFT, ButtonMasks::LEFT},
             {SDL_SCANCODE_RIGHT, ButtonMasks::RIGHT},
-            {SDL_SCANCODE_KP_ENTER, ButtonMasks::START},
+            {SDL_SCANCODE_RETURN, ButtonMasks::START},
+        };
+
+        debugMap = {
+            {SDL_SCANCODE_A, "A"},
+            {SDL_SCANCODE_B, "B"},
+            {SDL_SCANCODE_RSHIFT, "Select"},
+            {SDL_SCANCODE_UP, "Up"},
+            {SDL_SCANCODE_DOWN, "Down"},
+            {SDL_SCANCODE_LEFT, "Left"},
+            {SDL_SCANCODE_RIGHT, "Right"},
+            {SDL_SCANCODE_RETURN, "Return"},
         };
     }
     void capture();

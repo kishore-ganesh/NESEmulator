@@ -29,9 +29,13 @@ unsigned char Memory::readAddress(unsigned short address){
     }
     // have mirroring
 
-    else if(address==0x4016|| address == 0x4017){
+    else if(address==0x4016){
+        SPDLOG_INFO("Input address: {0:x}", address);
         SPDLOG_INFO("INPUT");
         return controller->readNext();
+    }
+    else if(address == 0x4017){
+        return 0;
     }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;

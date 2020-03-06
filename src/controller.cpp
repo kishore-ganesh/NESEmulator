@@ -1,34 +1,36 @@
 #include "controller.h"
 void Controller::capture(){
-    spdlog::info("Capturing Input");
+    SPDLOG_INFO("Capturing Input");
+    capturingStatus = 0;
     const Uint8* keys = SDL_GetKeyboardState(NULL);
     for(KEYMAP::iterator key = keyMap.begin(); key!= keyMap.end(); key++){
         if(keys[key->first]){
-            spdlog::info("KEY PRESSED: {0:d}", (unsigned char)key->second);
+            // SPDLOG_INFO("KEY PRESSED: {0:d}", (unsigned char)key->second);
+            SPDLOG_INFO("Key pressed: {0:s}", debugMap[key->first]);
             capturingStatus |= (unsigned char)key->second;
         }
     }
-    spdlog::info("Capturing Status: {0:d}", capturingStatus);
+    SPDLOG_INFO("Capturing Status: {0:d}", capturingStatus);
 
 }
 
 void Controller::stopCapture(){
-    spdlog::info("Stopped capturing input");
+    SPDLOG_INFO("Stopped capturing input");
     providingStatus = capturingStatus;
-    capturingStatus = 0;
+    
 }
 
 // void Controller::printStatus(){
-//     spdlog::info(" 
+//     SPDLOG_INFO(" 
 //         A: {0:b}\n \ 
 //         B: {0:b}\n \
 //     ")
 // }
 
 bool Controller::readNext(){
-    spdlog::info("Providing status: {}", providingStatus);
+    SPDLOG_INFO("Providing status: {}", providingStatus);
     bool lastBit = providingStatus & 0x01;
-    spdlog::info("Last bit: {}", lastBit);
+    SPDLOG_INFO("Last bit: {}", lastBit);
     providingStatus >>= 1;
     return lastBit;
 }
