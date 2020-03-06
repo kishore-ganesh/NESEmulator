@@ -366,7 +366,7 @@ void PPU::renderTile(TileInfo tileInfo){
         if(!tileInfo.background && tileInfo.spriteIndex == 0 && palletes[palleteIndex]==getPixel(x, tileInfo.y)){
             SPDLOG_INFO("SPRITE ZERO HIT");
             unsigned char ppuStatus = getRegister(PPUSTATUS);
-            setRegister(PPUSTATUS, ppuStatus |= 0x20);
+            setRegister(PPUSTATUS, ppuStatus |= 0x40);
         }
         setPixel(x, tileInfo.y, palletes[palleteIndex]);
         tileInfo.upperPattern <<= 1;
@@ -386,7 +386,7 @@ void PPU::generateFrame(int cycles){
         if(cyclesLeft>=1){
             if(currentScanline==-1){
                 unsigned char ppuStatus = getRegister(PPUSTATUS);
-                setRegister(PPUSTATUS, ppuStatus & ~(0x20));
+                setRegister(PPUSTATUS, ppuStatus & ~(0x40));
             }
             addCycles(1);
             renderFlag = false;
@@ -399,9 +399,10 @@ void PPU::generateFrame(int cycles){
     secondaryOAM.clear();
 
             //Place it in the right place
+    // spdlog::info("CURRENT SCANLINE: {0:d}", currentScanline);
     for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
                     //Should be absolute distance
-        SPDLOG_INFO("SPRITE OAM: {0:d} {1:d}", OAM[oamIndex], OAM[oamIndex+3]);
+        SPDLOG_INFO("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex+3],OAM[oamIndex], currentScanline);
         if((abs(currentScanline-OAM[oamIndex]))<8 && secondaryOAM.size() < 8){
                     //Add size check
             secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});

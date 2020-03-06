@@ -364,7 +364,7 @@ void CPU::STA(unsigned short address){
 }
 void CPU::LDA(unsigned short address){
     unsigned char data = readAddress(address);
-    SPDLOG_INFO("LDA");
+    SPDLOG_INFO("LDA {0:x}", address);
     A = data; //check if flag is to be set here
     checkValueFlags(A);
 }
