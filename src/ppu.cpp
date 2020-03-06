@@ -16,7 +16,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->currentScanline = -1;
 }
 
-unsigned char PPU::readAddress(unsigned short address)
+unsigned char PPU::readAddress(unsigned short address, bool external)
 {
     // std::cout << address << std::endl;
     address = (address % 0x4000);
@@ -29,13 +29,29 @@ unsigned char PPU::readAddress(unsigned short address)
             case Mirroring::VERTICAL: {
                 unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
                 unsigned short offset = (address % 0x400);
-                return vram[baseAddress + offset];
+                if(!external){
+                    return vram[baseAddress + offset];
+                }
+                else{
+                    char value = internalBuffer[baseAddress + offset];
+                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
+                    return value;
+                }
+                
                 break;
             }
             case Mirroring::HORIZONTAL: {
                 unsigned short baseAddress = ((address <= 0x2400) || (address >= 0x2800 && address <= 0x2c00) ) ? 0x000: 0x400;
                 unsigned short offset = (address % 0x400);
-                return vram[baseAddress + offset];
+                if(!external){
+                    return vram[baseAddress + offset];
+                }
+                else{
+                    char value = internalBuffer[baseAddress + offset];
+                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
+                    return value;
+                }
+                // return vram[baseAddress + offset];
                 break;
             }
         }
@@ -44,7 +60,7 @@ unsigned char PPU::readAddress(unsigned short address)
 
     if (address >= 0x3000 && address <= 0x3EFF){
         SPDLOG_INFO("Accessing weird");
-        return readAddress(address - 0x1000);
+        return readAddress(address - 0x1000, external);
     }
     if (address>=0x3F00&&address<=0x3F1F){
         switch(address){
@@ -59,7 +75,7 @@ unsigned char PPU::readAddress(unsigned short address)
 
     if(address >= 0x3F20 && address <= 0x3FFF){
         SPDLOG_INFO("REPLICATED PALLETES");
-        return  readAddress((address- 0x3F20) % 0x20 + 0x3F00);
+        return  readAddress((address- 0x3F20) % 0x20 + 0x3F00, external);
         // return programPalletes[address-0x3F00]; // fix this
         /* Return pallete -  */
     }
@@ -111,7 +127,7 @@ void PPU::writeAddress(unsigned short address, char value){
     }
 
     if(address >= 0x3F20 && address <= 0x3FFF){
-        spdlog::error("REPLICATED PALLETES");
+        // spdlog::error("REPLICATED PALLETES");
         // SPDLOG_INFO("REPLICATED PALLETES");
         writeAddress((address- 0x3F20) % 0x20 + 0x3F00, value);
         // programPalletes[(address-0x3F20)%0x20] = value;
@@ -148,6 +164,7 @@ unsigned char PPU::readRegister(Registers reg){
         }
         case PPUDATA: {
             SPDLOG_INFO("READING FROM PPU DATA");
+            value = readAddress(address, true);
             char increment = getIncrement();
             // unsigned char currentAddress = getRegister(PPUADDR);
             // setRegister(PPUADDR,currentAddress+increment);
@@ -253,7 +270,7 @@ void PPU::fetchTile(int tileNumber){
     short baseNameTableAddress = getNameTableAddress();
     short nameTableOffset = tileNumber + (currentScanline/8) * 32;
     SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
-    unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset);    
+    unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset, false);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
     // printf("NAMETABLE OFFSET %d", nameTableOffset);
@@ -267,7 +284,7 @@ void PPU::fetchTile(int tileNumber){
     short yIndex = (currentScanline/8)/4;
     unsigned short attributeOffset = (yIndex*8) + xIndex;
     unsigned short attributeAddress = baseAttributeTableAddress + attributeOffset;
-    unsigned char attributeEntry = readAddress(attributeAddress);
+    unsigned char attributeEntry = readAddress(attributeAddress, false);
     
     // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
     
@@ -289,8 +306,8 @@ void PPU::fetchTile(int tileNumber){
     unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
     upperPattern&=(0x00FF);
     lowerPattern&=(0x00FF);
-    upperPattern|=(readAddress(patternAddress)) << 8;
-    lowerPattern|=(readAddress(patternAddress+8)) << 8;
+    upperPattern|=(readAddress(patternAddress, false)) << 8;
+    lowerPattern|=(readAddress(patternAddress+8, false)) << 8;
 }
 
 TileInfo PPU::fetchSpriteTile(int oamIndex){
@@ -311,8 +328,8 @@ TileInfo PPU::fetchSpriteTile(int oamIndex){
 
     // printf("ATTRIBUTES: %d", attribute);
     unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
-    unsigned char upperTile = readAddress(patternAddress);
-    unsigned char lowerTile = readAddress(patternAddress + 8);
+    unsigned char upperTile = readAddress(patternAddress, false);
+    unsigned char lowerTile = readAddress(patternAddress + 8, false);
     struct TileInfo tileInfo = {
         upperTile,
         lowerTile,
@@ -338,7 +355,7 @@ void PPU::renderTile(TileInfo tileInfo){
         //     palleteAddress = 0x3F00;
         // }
         SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
-        char palleteIndex = readAddress(palleteAddress);
+        char palleteIndex = readAddress(palleteAddress, false);
         //Need to evaluate priority here
         unsigned char x = tileInfo.x + patternBit;
         // unsigned char y = secondaryOAM[oamIndex].y;

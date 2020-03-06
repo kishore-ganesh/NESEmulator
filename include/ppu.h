@@ -57,6 +57,7 @@ class PPU
     } mirroringMode;
     bool renderFlag;
     unsigned char vram[2 * 1024];
+    unsigned char internalBuffer[2 * 1024];
     char registers[8];
     short scroll;
     unsigned short upperPattern, lowerPattern;
@@ -148,7 +149,7 @@ class PPU
 
 public:
     PPU(Memory *memory, EdgeInterrupt *NMI);
-    unsigned char readAddress(unsigned short address);
+    unsigned char readAddress(unsigned short address, bool external);
     void writeAddress(unsigned short address, char value);
     unsigned char getRegister(Registers reg);
     void setRegister(Registers reg, char value);
