@@ -3,12 +3,15 @@
 #include "interrupt.h"
 #include "memory.h"
 
+
 class CPU{
     public:
     unsigned char A, X, Y, P; //check check setting of stack pointer
     unsigned char SP;
     int cycles;
     Memory* memory;
+    bool shouldCaptureInput;
+    bool stopCaptureInput;
     enum masks{
         CARRY = 0x01,
         ZERO = 0x02,
@@ -27,6 +30,8 @@ class CPU{
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
+    bool captureInput();
+    bool stopCapture();
     void setFlag(char mask, bool bit);
     bool getFlag(char mask);
     void checkValueFlags(char value);

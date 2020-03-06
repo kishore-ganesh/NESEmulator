@@ -8,10 +8,21 @@ CPU::CPU(Memory* memory){
     SP = 0xFF;
     NMI.clearInterrupt(); //Make NMI a pointer
     IRQ = true;
+    shouldCaptureInput = false;
 }
 
 EdgeInterrupt* CPU::getNMIPointer(){
     return &NMI;
+}
+
+bool CPU::captureInput(){
+    return shouldCaptureInput;
+}
+//Stop input captur
+bool CPU::stopCapture(){
+    bool shouldStop = stopCaptureInput;
+    stopCaptureInput = 0;
+    return shouldStop;
 }
 void CPU::setFlag(char mask, bool bit){
     P&=~mask;
@@ -56,6 +67,12 @@ short CPU::readLittleEndian(unsigned short address){
 }
 void CPU::writeAddress(unsigned short address, char value){
     cycles++;
+    if(address == 0x4016){
+        shouldCaptureInput = value & 0x01;
+        stopCaptureInput = !shouldCaptureInput;
+        spdlog::info("SHOULD CAPTURE INPUT: {0:b}",shouldCaptureInput);
+    }
+
     memory->writeAddress(address, value);
 }
 

@@ -2,9 +2,10 @@
 using std::cout;
 using std::endl;
 
-Memory::Memory(char* path){
+Memory::Memory(char* path, Controller* controller){
     cartridge = new Cartridge(path);
-    this->ppu = ppu;
+    // this->ppu = ppu;
+    this->controller = controller;
 }
 
 void Memory::setPPU(PPU* ppu){
@@ -30,7 +31,7 @@ unsigned char Memory::readAddress(unsigned short address){
 
     else if(address==0x4016|| address == 0x4017){
         SPDLOG_INFO("INPUT");
-        return 0;
+        return controller->readNext();
     }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;

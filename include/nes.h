@@ -3,7 +3,7 @@
 #include "cpu.h"
 #include<stdio.h>
 #include<iostream>
-
+#include "controller.h"
 
 class NES{
     public:
@@ -11,6 +11,7 @@ class NES{
     CPU* cpu;
     Memory* memory;
     PPU* ppu;
+    Controller* controller;
     int cpuCycles;
     /*
     A - Accumulator

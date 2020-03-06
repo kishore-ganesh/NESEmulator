@@ -12,8 +12,8 @@
 NES::NES(char *path)
 {
     //add CPU code
-
-    memory = new Memory(path);
+    controller = new Controller();
+    memory = new Memory(path, controller);
     cpu = new CPU(memory);
     ppu = new PPU(memory, cpu->getNMIPointer());
     memory->setPPU(ppu);
@@ -42,6 +42,12 @@ void NES::ppuCycle(){
 void NES::cpuCycle(){
     cpuCycles = cpu->cycle();
     cpu->printStatus();
+    if(cpu->captureInput()){
+        controller->capture();
+    }
+    else if(cpu->stopCapture()){
+        controller->stopCapture();
+    }
     ppu->addCPUCycles(cpuCycles);
 }
 
