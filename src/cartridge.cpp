@@ -56,5 +56,5 @@ void Cartridge::write(unsigned short address, char value){
 }   
 
 bool Cartridge::getMirroringMode(){
-    return (header.flag[0] & 0x01) >> 2;
+    return (header.flag[0] & 0x01);
 }

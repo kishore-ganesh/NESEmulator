@@ -26,7 +26,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
     if (address >= 0x2000 && address <= 0x2FFF){
         SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
         switch(mirroringMode){
-            case Mirroring::VERTICAL: {
+            case Mirroring::HORIZONTAL: {
                 unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
                 unsigned short offset = (address % 0x400);
                 if(!external){
@@ -40,10 +40,11 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
                 
                 break;
             }
-            case Mirroring::HORIZONTAL: {
-                unsigned short baseAddress = ((address <= 0x2400) || (address >= 0x2800 && address <= 0x2c00) ) ? 0x000: 0x400;
+            case Mirroring::VERTICAL: {
+                unsigned short baseAddress = ((address < 0x2400) || (address >= 0x2800 && address < 0x2c00) ) ? 0x000: 0x400;
                 unsigned short offset = (address % 0x400);
                 if(!external){
+                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
                     return vram[baseAddress + offset];
                 }
                 else{
@@ -91,14 +92,14 @@ void PPU::writeAddress(unsigned short address, char value){
         // vram[address - 0x2000] = value;
         SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
         switch(mirroringMode){
-            case Mirroring::VERTICAL: {
+            case Mirroring::HORIZONTAL: {
                 unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
                 unsigned short offset = (address % 0x400);
                 vram[baseAddress + offset]  = value;
                 break;
             }
-            case Mirroring::HORIZONTAL: {
-                unsigned short baseAddress = ((address <= 0x2400) || (address >= 0x2800 && address <= 0x2c00) ) ? 0x000: 0x400;
+            case Mirroring::VERTICAL: {
+                unsigned short baseAddress = ((address < 0x2400) || (address >= 0x2800 && address < 0x2c00) ) ? 0x000: 0x400;
                 unsigned short offset = (address % 0x400);
                 vram[baseAddress + offset] = value;
                 break;
@@ -406,6 +407,7 @@ void PPU::generateFrame(int cycles){
             secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
         }
     }
+
     if(currentCycle>=1&&currentCycle<=256){
         if(currentScanline!=-1&&currentScanline<240){
             //Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
