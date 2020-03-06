@@ -43,8 +43,9 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
             case Mirroring::VERTICAL: {
                 unsigned short baseAddress = ((address < 0x2400) || (address >= 0x2800 && address < 0x2c00) ) ? 0x000: 0x400;
                 unsigned short offset = (address % 0x400);
+                // spdlog::info("Address: {0:x}, Calculated: {1:x}", address, baseAddress);
                 if(!external){
-                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
+                    // internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
                     return vram[baseAddress + offset];
                 }
                 else{
@@ -351,10 +352,12 @@ void PPU::renderTile(TileInfo tileInfo){
     }
     for(int patternBit = 0; patternBit < 8;  patternBit++){   
         unsigned short palleteAddress = baseAddress | (tileInfo.attribute << 2) | ((tileInfo.lowerPattern >> 7)<<1) | (tileInfo.upperPattern>>7);
-        // if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
-        //     //Should be mirror
-        //     palleteAddress = 0x3F00;
-        // }
+        if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
+            //Should be mirror
+            if(tileInfo.background){
+                palleteAddress = 0x3F00;
+            }
+        }
         SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress, false);
         //Need to evaluate priority here

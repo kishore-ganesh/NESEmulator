@@ -152,10 +152,10 @@ void CPU::processInstruction(unsigned char instruction){
     if((instruction&0x1F)==0x10){
         bool bit = (instruction & 0x20) >> 5;
         switch((instruction&0xC0)>>6){
-            case 0x0: BRANCH(NEGATIVE, bit); break;
-            case 0x1: BRANCH(INTEGER_OVERFLOW, bit); break;
-            case 0x2: BRANCH(CARRY, bit); break;
-            case 0x3: BRANCH(ZERO, bit); break;
+            case 0x0: BRANCH(NEGATIVE, bit); SPDLOG_INFO("Branch if Negative: {0:b}", bit); break;
+            case 0x1: BRANCH(INTEGER_OVERFLOW, bit); SPDLOG_INFO("Branch if Overflow: {0:b}", bit); break;
+            case 0x2: BRANCH(CARRY, bit); SPDLOG_INFO("Branch if Carry: {0:b}", bit); break;
+            case 0x3: BRANCH(ZERO, bit); SPDLOG_INFO("Branch if Zero: {0:b}", bit); break;
         }
     }
     else if(cc==0x01){
@@ -551,7 +551,7 @@ void CPU::CPX(unsigned short address){
 void CPU::BRANCH(masks flag, bool bit){
     PC = PC + 1;
     char data = readAddress(PC);
-    SPDLOG_INFO("BRANCH");
+    // SPDLOG_INFO("BRANCH");
     if(getFlag(flag)==bit){
         PC = PC + data; //chedck this
     }
