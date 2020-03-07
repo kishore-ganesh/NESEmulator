@@ -163,6 +163,8 @@ unsigned char PPU::readRegister(Registers reg){
         case PPUSTATUS: {
             setRegister(reg, value & 0x7F);
             address = 0;
+            // xscroll = 0;
+            // yscroll = 0;
             break; 
         }
         case OAMDATA: {
@@ -277,6 +279,11 @@ void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
     short baseNameTableAddress = getNameTableAddress();
+    SPDLOG_INFO("Base nametable addess: {0:x}, Tile Number: {1:d}", baseNameTableAddress, tileNumber);
+    if(tileNumber > 31){
+        baseNameTableAddress += 0x400;
+        tileNumber = tileNumber % 32;
+    }
     short nameTableOffset = tileNumber + (currentScanline/8) * 32;
     // SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset, false);    
@@ -368,7 +375,7 @@ void PPU::renderTile(TileInfo tileInfo){
         SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress, false);
         //Need to evaluate priority here
-        unsigned char x = tileInfo.x + patternBit;
+        unsigned short x = tileInfo.x + patternBit;
         // unsigned char y = secondaryOAM[oamIndex].y;
         if(tileInfo.horizontalFlip){
             x = tileInfo.x + 7 - (patternBit);
@@ -378,7 +385,19 @@ void PPU::renderTile(TileInfo tileInfo){
             unsigned char ppuStatus = getRegister(PPUSTATUS);
             setRegister(PPUSTATUS, ppuStatus |= 0x40);
         }
-        setPixel(x, tileInfo.y, palletes[palleteIndex]);
+        if(tileInfo.background){
+            if((x - xscroll%8 )>=0 && ((x - xscroll%8 <= 255))){
+                setPixel(x - xscroll%8, tileInfo.y, palletes[palleteIndex]);
+            }
+        }
+        else{
+            // spdlog::info("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
+            if(x < 256){
+                setPixel(x, tileInfo.y, palletes[palleteIndex]);
+            }
+            
+        }
+        
         tileInfo.upperPattern <<= 1;
         tileInfo.lowerPattern <<= 1;
     }
@@ -468,7 +487,7 @@ void PPU::generateFrame(int cycles){
                 upperPattern >>= 8;
                 lowerPattern >>= 8;
                 if(i<32){
-                    fetchTile(i);
+                    fetchTile(i + xscroll/8);
                 }
             }
 
@@ -486,6 +505,7 @@ void PPU::generateFrame(int cycles){
                 }
                 if (cyclesLeft>=341){
                     addCycles(341);
+                    // cyclesLeft = 0;
                     currentCycle = 0;
                 }
                 else {
@@ -534,7 +554,7 @@ void PPU::generateFrame(int cycles){
         if (cyclesLeft>=8){
             SPDLOG_INFO("NEXT: {0:d}", currentScanline);
             addCycles(8);
-            fetchTile(0);
+            fetchTile(0 + xscroll/8);
         }
         else{
             cyclesNeeded = cyclesLeft - 8;
@@ -546,7 +566,7 @@ void PPU::generateFrame(int cycles){
             upperPattern >>= 8;
             lowerPattern >>= 8;
             addCycles(8);
-            fetchTile(1);  
+            fetchTile(1 + xscroll/8);  
         }
         else{
             cyclesNeeded = cyclesLeft - 8;
