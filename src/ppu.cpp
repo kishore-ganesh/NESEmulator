@@ -196,6 +196,8 @@ void PPU::writeOAM(unsigned char address, unsigned char value){
 void PPU::writeRegister(Registers reg, unsigned char value){
     //Don't need to handle other cases, we're handling here
     setRegister(reg, value);
+    unsigned char ppuStatus = getRegister(PPUSTATUS);
+    setRegister(PPUSTATUS, (ppuStatus & 0xE0)|(value & 0x1F));
     switch(reg){
         case OAMADDR: {
             SPDLOG_INFO("OAM ADDRESS SET: {0:x}", value);
@@ -279,7 +281,8 @@ void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
     short baseNameTableAddress = getNameTableAddress();
-    spdlog::info("Base nametable addess: {0:x},  xScroll: {2:d}, yScroll: {3:d}", baseNameTableAddress, tileNumber, xscroll, yscroll);
+    SPDLOG_INFO("Base nametable addess: {0:x},  xScroll: {2:d}, yScroll: {3:d}", baseNameTableAddress, tileNumber, xscroll, yscroll);
+    SPDLOG_INFO("Internal address: {0:x}", address);
     if(tileNumber > 31){
         baseNameTableAddress += 0x400;
         tileNumber = tileNumber % 32;
@@ -288,6 +291,7 @@ void PPU::fetchTile(int tileNumber){
     // SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset, false);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
+    SPDLOG_INFO("Base pattern address: {0:x}", basePatternTableAddress);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
     // printf("NAMETABLE OFFSET %d", nameTableOffset);
     //Check this again
@@ -320,6 +324,10 @@ void PPU::fetchTile(int tileNumber){
     attribute = (attributeEntry & (0x03 << (offset*2))) >> (offset*2); // check if this is correct for 2 tiles
     //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
     unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
+    if(patternAddress > basePatternTableAddress + 0x0FFF){
+        SPDLOG_INFO("Pattern address: {0:x}", patternAddress);
+    }
+    
     upperPattern&=(0x00FF);
     lowerPattern&=(0x00FF);
     upperPattern|=(readAddress(patternAddress, false)) << 8;

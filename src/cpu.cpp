@@ -84,9 +84,10 @@ void CPU::readImmediate(unsigned short& PC, unsigned short& address){
 }
 
 void CPU::readZeroPage(unsigned short& PC, unsigned short& address){
-    SPDLOG_INFO("ZERO PAGE ");
+    SPDLOG_INFO("ZERO PAGE {0:x}", address);
     PC = PC + 1;
     address = (readAddress(PC))&0x00FF;
+    SPDLOG_INFO("ZERO PAGE READ {0:x}", address);
 }
 
 void CPU::readAbsolute(unsigned short& PC, unsigned short &address){
@@ -372,7 +373,7 @@ void CPU::LDA(unsigned short address){
 }
 void CPU::CMP(unsigned short address){
     unsigned char data = readAddress(address);
-    SPDLOG_INFO("CMP");
+    SPDLOG_INFO("CMP A: {0:d} & Data: {1:d}", A, data);
     bool borrowBit = A >= data ? 1: 0;
     setFlag(CARRY, borrowBit);
     checkValueFlags(A - data);
@@ -492,7 +493,7 @@ void CPU::BIT(unsigned short address){
     zeroBit = data & A == 0 ? 1 : 0;
     negativeBit = data & 0x80;
     overflowBit = (data & 0x40);
-    SPDLOG_INFO("BIT Data is {}", data & 0x8D);
+    SPDLOG_INFO("BIT Data is {}", data);
     SPDLOG_INFO("BIT negativeBit: {0:b}, overflowBit: {0:d}", negativeBit, 0x8D & 0x40);
     setFlag(ZERO, (data & A)==0);
     setFlag(INTEGER_OVERFLOW, overflowBit);
