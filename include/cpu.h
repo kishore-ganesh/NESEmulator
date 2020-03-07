@@ -18,8 +18,8 @@ class CPU{
         INT = 0x04,
        // DEC = 0x08,
         B = 0x10,
-        INTEGER_OVERFLOW = 0x20,
-        NEGATIVE = 0x40
+        INTEGER_OVERFLOW = 0x40,
+        NEGATIVE = 0x80
     } flagMask;
 
     unsigned short PC;

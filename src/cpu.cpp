@@ -165,7 +165,9 @@ void CPU::processInstruction(unsigned char instruction){
                 SPDLOG_INFO("(Indirect, X)") ;
                 PC = PC + 1;
                 address = readAddress(PC);
-                address = readLittleEndian((address+X)&0x00FF);
+                address = (readAddress((address+X+1)&0x00FF)<<8) |readAddress((address+X)&0x00FF);
+                // address = readLittleEndian((address+X)&0x00FF);
+                // address = addres
                 break;
             } 
             case 0x1: {
@@ -184,7 +186,7 @@ void CPU::processInstruction(unsigned char instruction){
                 SPDLOG_INFO("(Indirect, Y)") ;
                 PC = PC + 1;
                 address = (readAddress(PC)) & 0x00FF;
-                address = readLittleEndian(address) + Y;                
+                address = ((readAddress((address+1)&0x00FF)<<8) |readAddress(address)) + Y;                
                 break;
             }
             case 0x5: {
