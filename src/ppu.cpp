@@ -25,6 +25,10 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
     }
     if (address >= 0x2000 && address <= 0x2FFF){
         SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
+        if(!external){
+            SPDLOG_INFO("PPU READING: {0:x}", address);
+        }
+        
         switch(mirroringMode){
             case Mirroring::HORIZONTAL: {
                 unsigned short baseAddress = address >= 0x2800 ? 0x400 : 0x000;
@@ -158,6 +162,7 @@ unsigned char PPU::readRegister(Registers reg){
     switch(reg){
         case PPUSTATUS: {
             setRegister(reg, value & 0x7F);
+            address = 0;
             break; 
         }
         case OAMDATA: {
@@ -192,7 +197,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
     switch(reg){
         case OAMADDR: {
             SPDLOG_INFO("OAM ADDRESS SET: {0:x}", value);
-            setRegister(PPUADDR, value);
+            setRegister(OAMADDR, value);
             break;
         }
         case OAMDATA:{
@@ -207,6 +212,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             scroll = existingScroll | (value << 8);
             xscroll = existingScroll;
             yscroll = value; 
+            SPDLOG_INFO("Scrolling => x: {0:d}, y: {0:d}", xscroll, yscroll);
             break;
         }
         case PPUADDR: {
@@ -231,6 +237,7 @@ unsigned short PPU::getNameTableAddress(){
     short baseAddress = 0x2000;
     short address = baseAddress + ((nameTableNumber*4) << 8);
     SPDLOG_INFO("NAMETABLE ADDRRESS: {0:x}", address);
+    SPDLOG_INFO("PPUCTRL: {0:x}", getRegister(PPUCTRL));
     return address; //check
 }
 
@@ -271,7 +278,7 @@ void PPU::fetchTile(int tileNumber){
     // 
     short baseNameTableAddress = getNameTableAddress();
     short nameTableOffset = tileNumber + (currentScanline/8) * 32;
-    SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
+    // SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset, false);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
@@ -381,7 +388,7 @@ void PPU::renderTile(TileInfo tileInfo){
 void PPU::generateFrame(int cycles){
     cyclesLeft += cycles;
     SPDLOG_INFO("CURRENT CYCLE: {0:d}, CYCLES LEFT: {1:d}", currentCycle, cyclesLeft);
-    int regValue = readRegister(PPUCTRL);
+    int regValue = getRegister(PPUCTRL);
     SPDLOG_INFO("SPRITE MODE: {0}", (regValue & 0x20)?"8x16":"8x8");
     SPDLOG_INFO("SECONDARY OAM SIZE: {0:d}", secondaryOAM.size());
 
@@ -582,6 +589,7 @@ void PPU::setMirroringMode(bool mode){
 
 bool PPU::getCyclesLeft(){
     SPDLOG_INFO("PPU CYCLES LEFT: {0:d}", cyclesLeft);
+    // Only effective if we're doing the whole frame here
     return cyclesLeft > 80000;
 }
 /*

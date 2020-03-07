@@ -91,6 +91,19 @@ void CMPTest(NES& nes){
 
 }
 
+void RTSTest(NES& nes){
+    nes.cpu->writeAddress(0x0700, 0x23);
+    nes.cpu->LDA(0x0700);
+    nes.cpu->PHA();
+    nes.cpu->writeAddress(0x0700, 0x07);
+    nes.cpu->LDA(0x0700);
+    nes.cpu->PHA();
+    nes.cpu->RTS();
+    if(nes.cpu->PC != 0x2307){
+        printf("RTS Test Failed, PC is: %x\n", nes.cpu->PC);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     NES nes(argv[1]);
@@ -116,8 +129,8 @@ int main(int argc, char *argv[])
     // ROR Test- with accumulator
     nes.cpu->A = 0x1A;
     nes.cpu->ROR(nes.cpu->A, true);
-    if (!(nes.cpu->A == (char)0x8D && nes.cpu->getFlag(CPU::CARRY) == 0))
-        cout << "ROR Error\n"; 
+    if (!(nes.cpu->A == 0x8D && nes.cpu->getFlag(CPU::CARRY)))
+        cout << "ROR Error" << " " << nes.cpu->A << endl; 
     clearFlags(nes);    
     nes.cpu->memory->writeAddress(0x0712, 0x1A);
     nes.cpu->setFlag(CPU::CARRY, 1);
@@ -216,6 +229,7 @@ int main(int argc, char *argv[])
 
     SBCTest(nes);
     CMPTest(nes);
+    RTSTest(nes);
     
 
 

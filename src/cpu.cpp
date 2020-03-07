@@ -577,6 +577,7 @@ char CPU::pop(){
     SP = SP + 1;
     short stackAddress = (highByte << 8 )| (unsigned char)SP;
     char data = readAddress(stackAddress);
+    SPDLOG_INFO("Popping: {0:x}", data);
     return data;
 }
 
@@ -642,6 +643,7 @@ void CPU::PHA(){
 void CPU::PLA(){
     SPDLOG_INFO("PLA");
     A = pop();
+    checkValueFlags(A);
     cycles+=1;
 }
 
