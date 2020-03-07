@@ -354,7 +354,8 @@ TileInfo PPU::fetchSpriteTile(int oamIndex){
         secondaryOAM[oamIndex].x,
         horizontalFlip,
         false,
-        secondaryOAM[oamIndex].index
+        secondaryOAM[oamIndex].index,
+        secondaryOAM[oamIndex].attributes & 0x20
     };
     return tileInfo;
 }
@@ -366,10 +367,14 @@ void PPU::renderTile(TileInfo tileInfo){
     }
     for(int patternBit = 0; patternBit < 8;  patternBit++){   
         unsigned short palleteAddress = baseAddress | (tileInfo.attribute << 2) | ((tileInfo.lowerPattern >> 7)<<1) | (tileInfo.upperPattern>>7);
+        bool isTransparent = false;
         if((tileInfo.lowerPattern>>7)==0&&(tileInfo.upperPattern>>7)==0){
             //Should be mirror
             if(tileInfo.background){
                 palleteAddress = 0x3F00;
+            }
+            else{
+                isTransparent = true;
             }
         }
         SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
@@ -393,7 +398,9 @@ void PPU::renderTile(TileInfo tileInfo){
         else{
             // spdlog::info("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
             if(x < 256){
-                setPixel(x, tileInfo.y, palletes[palleteIndex]);
+                if(!isTransparent && !tileInfo.priority || palletes[readAddress(0x3f00, false)]==getPixel(x, tileInfo.y)){
+                    setPixel(x, tileInfo.y, palletes[palleteIndex]);
+                }
             }
             
         }

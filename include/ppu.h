@@ -47,7 +47,7 @@ struct TileInfo{
     bool horizontalFlip;
     bool background;
     unsigned char spriteIndex;
-
+    bool priority;
 };
 class PPU
 {
