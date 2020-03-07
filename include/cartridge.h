@@ -9,7 +9,7 @@ struct iNES_Header{
 };
 
 class Cartridge {
-    char PRG_ROM[32768];
+    char* PRG_ROM;
     char CHR_ROM[8192]; //check this
     iNES_Header header;
     public:

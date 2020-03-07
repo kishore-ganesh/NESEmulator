@@ -63,7 +63,8 @@ class PPU
     unsigned short upperPattern, lowerPattern;
     unsigned char attribute;
     unsigned short address;
-    char xscroll, yscroll;
+    unsigned char xscroll;
+    char yscroll;
     unsigned char OAM[256];
     std::vector<Sprite> secondaryOAM;
     int cyclesLeft;

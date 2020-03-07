@@ -210,7 +210,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             break;
         }
         case PPUSCROLL: {
-            char existingScroll = (scroll&0xFF00) >> 8;
+            unsigned char existingScroll = (scroll&0xFF00) >> 8;
             scroll = existingScroll | (value << 8);
             xscroll = existingScroll;
             yscroll = value; 
@@ -279,7 +279,7 @@ void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
     short baseNameTableAddress = getNameTableAddress();
-    SPDLOG_INFO("Base nametable addess: {0:x}, Tile Number: {1:d}", baseNameTableAddress, tileNumber);
+    spdlog::info("Base nametable addess: {0:x},  xScroll: {2:d}, yScroll: {3:d}", baseNameTableAddress, tileNumber, xscroll, yscroll);
     if(tileNumber > 31){
         baseNameTableAddress += 0x400;
         tileNumber = tileNumber % 32;
@@ -610,7 +610,7 @@ void PPU::setMirroringMode(bool mode){
 bool PPU::getCyclesLeft(){
     SPDLOG_INFO("PPU CYCLES LEFT: {0:d}", cyclesLeft);
     // Only effective if we're doing the whole frame here
-    return cyclesLeft > 80000;
+    return cyclesLeft > 341;
 }
 /*
 PPU CHR ROM should be mapped to the pattern tables

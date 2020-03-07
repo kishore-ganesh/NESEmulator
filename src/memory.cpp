@@ -49,7 +49,7 @@ unsigned char Memory::readCHRAddress(unsigned short address){
 }
 
 void Memory::writeAddress(unsigned short address, char value){
-    SPDLOG_INFO("Writing to: {0:x}",address);
+    SPDLOG_INFO("Writing to: {0:x} value: {1:x}",address, value);
     if(address >= 0x2008 && address <= 0x3fff){
         SPDLOG_INFO("Mirrored register access");
     }    

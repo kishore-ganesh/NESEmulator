@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include<algorithm>
 #include "cartridge.h"
 
 Cartridge::Cartridge(char *path)
 {
     FILE *rom = fopen(path, "r");
     fread(&header, sizeof(header), 1, rom);
+    PRG_ROM = new char[std::max(header.prgSize * 0x4000, 32768)];
     printHeader(header);
     if (header.flag[0] & 0x0004)
     {
