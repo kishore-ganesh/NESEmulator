@@ -7,6 +7,7 @@ that singlehandedly brought back the videogame industry from the brinks of extin
 It has specs that some may consider primitive in our times, with a paltry 2KB of RAM and a 1.79 Mhz 6502 CPU. It was a beast in its own age, however,
 with its custom Picture Processing Unit being one of the foremost 2D picture processors of that age.
 
+This project would not have been possible without the incredible reverse engineering knowledge on the Interwebs, particularly Nesdev, which proved to be an invaluable resource. 
 ## Screenshots
 
 ![](Screenshots/nes_smb.gif)  
