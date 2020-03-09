@@ -16,7 +16,7 @@ class CPU{
         CARRY = 0x01,
         ZERO = 0x02,
         INT = 0x04,
-       // DEC = 0x08,
+        DECIMAL = 0x08,
         B = 0x10,
         INTEGER_OVERFLOW = 0x40,
         NEGATIVE = 0x80

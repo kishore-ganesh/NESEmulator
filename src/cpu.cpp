@@ -307,26 +307,26 @@ int CPU::cycle(){
 }
 void CPU::ORA(unsigned short address){
     char data = readAddress(address);
-    SPDLOG_INFO("ORA");
+    SPDLOG_INFO("ORA with {0:d}", data);
     A|=data;
     checkValueFlags(A);
 }
 
 void CPU::AND(unsigned short address){
     char data = readAddress(address);
-    SPDLOG_INFO("AND");
+    SPDLOG_INFO("AND with {0:d}", data);
     A&=data;
     checkValueFlags(A);
 }
 void CPU::EOR(unsigned short address){
     char data = readAddress(address);
-    SPDLOG_INFO("EOR");
+    SPDLOG_INFO("EOR with {0:d}", data);
     A^=data;
     checkValueFlags(A);
 }
 void CPU::ADC(unsigned short address){
     unsigned char data = readAddress(address);
-    SPDLOG_INFO("ADC");
+    SPDLOG_INFO("ADC with {0:d}", data);
     SPDLOG_INFO("{0:d}",data);
     short result = A + data+getFlag(CARRY);
     bool carryBit = result > 0xFF ? 1 : 0;
@@ -714,14 +714,15 @@ void CPU::CLV(){
 }
 
 void CPU::CLD(){
-    SPDLOG_INFO("CLD");  
-    cycles+=1;
+    SPDLOG_INFO("CLD");
+    setFlag(DECIMAL, 0);
+    cycles += 1;
 }
-
 
 void CPU::SED(){
     SPDLOG_INFO("SED");
-    cycles+=1;
+    setFlag(DECIMAL, 1);
+    cycles += 1;
 }
 
 void CPU::TXA(){
