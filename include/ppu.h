@@ -59,6 +59,7 @@ class PPU
     unsigned char vram[2 * 1024];
     unsigned char internalBuffer[2 * 1024];
     bool addressLatch;
+    bool inVblank;
     char registers[8];
     short scroll;
     unsigned short upperPattern, lowerPattern;

@@ -17,6 +17,7 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->xscroll = 0;
     this->yscroll = 0;
     this->addressLatch = false;
+    this->inVblank = false;
     setRegister(PPUCTRL, 0);
     setRegister(PPUMASK, 0);
     setRegister(PPUSTATUS, 0xA0);
@@ -100,6 +101,9 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
 
 void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
+    if(!inVblank){
+        spdlog::warn("WRITING OUTSIDE OF VBLANK");
+    }
     if (address >= 0x2000 && address <= 0x2FFF){
         // spdlog::error("WRITE EXCEED");
         // if(address>0x27ff){
@@ -174,7 +178,7 @@ unsigned char PPU::readRegister(Registers reg){
         case PPUSTATUS: {
             setRegister(reg, value & 0x7F);
             addressLatch = false;
-            spdlog::info("PPUSTATUS READ");
+            // spdlog::info("PPUSTATUS READ");
             // address = 0;
             // address = address >
             // xscroll = 0;
@@ -210,6 +214,9 @@ void PPU::writeOAM(unsigned char address, unsigned char value){
 void PPU::writeRegister(Registers reg, unsigned char value){
     //Don't need to handle other cases, we're handling here
     SPDLOG_INFO("Register {0:d} set to {1:d}", (int)reg, value);
+    if(!inVblank){
+        spdlog::warn("WRITING REGISTERS OUTSIDE OF VBLANK");
+    }
     if(reg == PPUCTRL && (value&0x03)!=(getRegister(PPUCTRL)&0x03)){
         spdlog::info("Register PPUCTRL changed");
     }
@@ -230,16 +237,16 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             break;
         }
         case PPUSCROLL: {
-            spdlog::info("PPUSCROLL set");
+            // spdlog::info("PPUSCROLL set");
             if(!addressLatch){
                 xscroll = value;
-                spdlog::info("PPU xscroll set to: {0:d}", xscroll);
+                spdlog::info("PPU xscroll set to: {0:d} at scanline: {1:d}", xscroll, currentScanline);
                 addressLatch = true;
             }
             else{
                 yscroll = value;
-                spdlog::info("PPU yscroll set to: {0:d}", yscroll);
-                // addressLatch =  false;
+                // spdlog::info("PPU yscroll set to: {0:d}", yscroll);
+                addressLatch =  false;
             }
             // addressLatch = !addressLatch;
             // unsigned char existingScroll = (scroll&0xFF00) >> 8;
@@ -250,7 +257,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             break;
         }
         case PPUADDR: {
-            spdlog::info("Address latch is: {0:b}", addressLatch);
+            // spdlog::info("Address latch is: {0:b}", addressLatch);
             
             if(!addressLatch){
                 address = (address&0x00FF) | (value<<8);
@@ -258,9 +265,9 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             }
             else{
                 address = (address & 0xFF00) | value;
-                // addressLatch =   false;
+                addressLatch =   false;
             }
-            spdlog::info("Value is: {0:x}, address now: {1:x}", value, address);
+            // spdlog::info("Value is: {0:x}, address now: {1:x}", value, address);
             
             // address = (address << 8) | value;
             // address = (address%0x4000);
@@ -268,7 +275,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
             break;
         }
         case PPUDATA: {
-            spdlog::info("WRITING TO PPU DATA: {0:x}", address);
+            SPDLOG_INFO("WRITING TO PPU DATA: {0:x}", address);
             writeAddress(address, value);
             char increment = getIncrement();
             // setRegister(PPUADDR, address + increment);
@@ -377,7 +384,7 @@ void PPU::fetchTile(int tileNumber){
 }
 
 TileInfo PPU::fetchSpriteTile(int oamIndex){
-    char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+    char lineNo = currentScanline  - secondaryOAM[oamIndex].y;
     // printf("")
     
     unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
@@ -436,23 +443,25 @@ void PPU::renderTile(TileInfo tileInfo){
             x = tileInfo.x + 7 - (patternBit);
         }
         RGB transparentPallete = palletes[readAddress(0x3F00, false)];
-        if(!tileInfo.background && tileInfo.spriteIndex == 0 && !(transparentPallete==getPixel(x, tileInfo.y))){
-            SPDLOG_INFO("SPRITE ZERO HIT");
+        if(!tileInfo.background && tileInfo.spriteIndex == 0 && !isTransparent && !(transparentPallete==getPixel(x, currentScanline))){
+            // spdlog::info("Background is: {}")
+            spdlog::info("SPRITE ZERO HIT at x: {0:d}, scanline: {1:d}", x, currentScanline);
             unsigned char ppuStatus = getRegister(PPUSTATUS);
             setRegister(PPUSTATUS, ppuStatus | 0x40);
         }
 
         if(tileInfo.background){
-            if((x - xscroll%8 )>=0 && ((x - xscroll%8 <= 255))){
-                setPixel(x - xscroll%8, tileInfo.y, palletes[palleteIndex]);
+            if((x - xscroll%8 )>=0){
+                // spdlog::info("Background x: {0:d}, y: {1:d} is: {2:x}", x-xscroll%8, tileInfo.y, palleteAddress);
+                setPixel(x - xscroll%8, currentScanline, palletes[palleteIndex]);
             }
         }
         else{
             // spdlog::info("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
             if(x < 256){
                 if(!isTransparent && !tileInfo.priority){
-                    // spdlog::info("SPRITE FOR")
-                    setPixel(x, tileInfo.y, palletes[palleteIndex]);
+                    // spdlog::info("SPRITE {}");
+                    setPixel(x, currentScanline, palletes[palleteIndex]);
                 }
             }
             
@@ -470,11 +479,12 @@ void PPU::generateFrame(int cycles){
     int regValue = getRegister(PPUCTRL);
     SPDLOG_INFO("SPRITE MODE: {0}", (regValue & 0x20)?"8x16":"8x8");
     SPDLOG_INFO("SECONDARY OAM SIZE: {0:d}", secondaryOAM.size());
-    // spdlog::info("Current scanline: {0:d}", currentScanline);
+    spdlog::info("Current scanline: {0:d}, Current scroll: {1:d}, Current Nametable Address: {2:x}", currentScanline, xscroll, getNameTableAddress());
     if(currentCycle==0){
         if(cyclesLeft>=1){
             if(currentScanline==-1){
                 unsigned char ppuStatus = getRegister(PPUSTATUS);
+                spdlog::info("Sprite zero cleared");
                 setRegister(PPUSTATUS, ppuStatus & ~(0x40));
             }
             addCycles(1);
@@ -485,21 +495,11 @@ void PPU::generateFrame(int cycles){
             return;
         }  
     }
-    secondaryOAM.clear();
-
-            //Place it in the right place
-    // spdlog::info("CURRENT SCANLINE: {0:d}", currentScanline);
-    for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
-                    //Should be absolute distance
-        SPDLOG_INFO("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex+3],OAM[oamIndex], currentScanline);
-        if((abs(currentScanline-OAM[oamIndex]))<8 && secondaryOAM.size() < 8){
-                    //Add size check
-            secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
-        }
-    }
+    
 
     if(currentCycle>=1&&currentCycle<=256){
         if(currentScanline!=-1&&currentScanline<240){
+            spdlog::info("Current Scanline: {0:d}, sprites no: {1:d}", currentScanline, secondaryOAM.size());
             //Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
             for(int i = (currentCycle/8)+2 ; i < 34; i++){
                 unsigned char upperTile = upperPattern&0x00FF;
@@ -524,10 +524,9 @@ void PPU::generateFrame(int cycles){
 
                 renderTile(tileInfo);
             
-
                 for(int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++){
-                    char lineNo = currentScanline - secondaryOAM[oamIndex].y;
-                    if(secondaryOAM[oamIndex].y > currentScanline || lineNo > 7 || secondaryOAM[oamIndex].x > (7 + (i-2)*8)){
+                    char lineNo = currentScanline  - secondaryOAM[oamIndex].y;
+                    if(secondaryOAM[oamIndex].y > currentScanline || lineNo > 7){
                            continue;
                     }
                     secondaryOAM[oamIndex].print();
@@ -536,8 +535,12 @@ void PPU::generateFrame(int cycles){
                     // attribute = 0;
                     TileInfo tileInfo = fetchSpriteTile(oamIndex);
                     renderTile(tileInfo);
-                    //Implement priority
                 }
+                    //Implement priority
+                // secondaryOAM.clear();
+
+            //Place it in the right place
+    // spdlog::info("CURRENT SCANLINE: {0:d}", currentScanline);
 
 
 
@@ -558,6 +561,7 @@ void PPU::generateFrame(int cycles){
             if(currentScanline>=240){
                 if (currentScanline == 241){
                     unsigned char status = getRegister(PPUSTATUS);
+                    inVblank = true;
                     setRegister(PPUSTATUS, status|0x80);
                     SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}", shouldInterrupt(), getRegister(PPUCTRL));
                     if(shouldInterrupt()){
@@ -577,7 +581,24 @@ void PPU::generateFrame(int cycles){
         }
         //Are we reaching hee?
         if(currentScanline!=-1){
+            secondaryOAM.clear();
+
+            //Place it in the right place
+            
             currentScanline++;
+            for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
+                    //Should be absolute distance
+                // spdlog::info("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex+3],OAM[oamIndex], currentScanline);
+                if((abs(currentScanline - OAM[oamIndex] + 1))<8 && secondaryOAM.size() < 8){
+                    //Add size check
+                    secondaryOAM.push_back({OAM[oamIndex] + 1, OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
+                }
+            }
+            
+            // spdlog::info("SPRITE 0 at: x: {0:d}, y: {0:d}", OAM[3], OAM[0]);
+            
+            
+            
         }
         else{
             if(cyclesLeft>=320){
@@ -595,6 +616,7 @@ void PPU::generateFrame(int cycles){
             currentScanline = -1;
             unsigned char status = getRegister(PPUSTATUS);
             setRegister(PPUSTATUS, status&0x7F);
+            inVblank = false;
         }
         // fetch nextScanlineData
     }
@@ -658,6 +680,14 @@ void PPU::setPixel(int x, int y, RGB value){
 }
 
 std::vector<std::vector<RGB>> PPU::getFrame(){
+    // std::vector<std::vector<RGB>> frame = display;
+    // RGB background = palletes[readAddress(0x3F00, false)];
+    // RGB background = {0, 0,0};
+    // for(int x = 0; x < 256; x++){
+    //     for(int y = 0; y < 240; y++){
+    //         setPixel(x, y, background);
+    //     }
+    // }
     return display;
 }
 bool PPU::shouldRender(){
