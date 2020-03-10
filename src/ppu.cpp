@@ -14,6 +14,15 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->cyclesNeeded = 0;
     this->currentCycle = 0;
     this->currentScanline = -1;
+    this->xscroll = 0;
+    this->yscroll = 0;
+    setRegister(PPUCTRL, 0);
+    setRegister(PPUMASK, 0);
+    setRegister(PPUSTATUS, 0xA0);
+    setRegister(OAMADDR, 0x0);
+    setRegister(PPUADDR, 0);
+    memset(internalBuffer, 2*1024, 0);
+    
 }
 
 unsigned char PPU::readAddress(unsigned short address, bool external)
@@ -195,6 +204,7 @@ void PPU::writeOAM(unsigned char address, unsigned char value){
 
 void PPU::writeRegister(Registers reg, unsigned char value){
     //Don't need to handle other cases, we're handling here
+    SPDLOG_INFO("Register {0:d} set to {1:d}", (int)reg, value);
     setRegister(reg, value);
     unsigned char ppuStatus = getRegister(PPUSTATUS);
     setRegister(PPUSTATUS, (ppuStatus & 0xE0)|(value & 0x1F));
@@ -385,7 +395,7 @@ void PPU::renderTile(TileInfo tileInfo){
                 isTransparent = true;
             }
         }
-        SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
+        // SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress, false);
         //Need to evaluate priority here
         unsigned short x = tileInfo.x + patternBit;
@@ -406,7 +416,8 @@ void PPU::renderTile(TileInfo tileInfo){
         else{
             // spdlog::info("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
             if(x < 256){
-                if(!isTransparent && !tileInfo.priority || palletes[readAddress(0x3f00, false)]==getPixel(x, tileInfo.y)){
+                if(!isTransparent && !tileInfo.priority){
+                    // spdlog::info("SPRITE FOR")
                     setPixel(x, tileInfo.y, palletes[palleteIndex]);
                 }
             }
@@ -514,6 +525,7 @@ void PPU::generateFrame(int cycles){
                 if (currentScanline == 241){
                     unsigned char status = getRegister(PPUSTATUS);
                     setRegister(PPUSTATUS, status|0x80);
+                    SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}", shouldInterrupt(), getRegister(PPUCTRL));
                     if(shouldInterrupt()){
                         NMI->triggerInterrupt();
                     }    

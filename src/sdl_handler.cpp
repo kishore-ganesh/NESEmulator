@@ -32,7 +32,8 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
             srcPixels[index+1] = pixel.g;
             srcPixels[index+2] = pixel.b;
             index+=3;
-
+            // if(y==239 && x==255)
+            // spdlog::info("Index is: {0:d}", index);
             // SDL_SetRenderDrawColor(renderer, pixel.r, pixel.g, pixel.b, 1);
             // SDL_RenderDrawPoint(renderer, x, y);
         }
@@ -41,6 +42,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
     void* destPixels;
     int pitch;
     SDL_LockTexture(texture, NULL, &destPixels, &pitch);
+    // spdlog::info("Pitch is : {0:d}", pitch);
     memcpy(destPixels, srcPixels, 256*240*3);
     SDL_UnlockTexture(texture);
     SDL_RenderCopy(renderer, texture, NULL, NULL ); //Update screen SDL_RenderPresent( gRenderer );
@@ -51,6 +53,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
 void SDLHandler::begin(){
     while(!shouldQuit){
         handleEvent();
+        SPDLOG_INFO("CYCLE");
         nes->cpuCycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
         // nes->cycle();
         // if(nes->shouldRender()){
@@ -60,6 +63,7 @@ void SDLHandler::begin(){
             SPDLOG_INFO("IN PPU CYCLE");
             nes->ppuCycle();
             if(nes->shouldRender()){
+                // spdlog::info("SHOULD RENDER");
                 displayFrame(nes->getFrame());
             }
         }

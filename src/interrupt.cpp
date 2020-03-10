@@ -4,6 +4,7 @@ EdgeInterrupt::EdgeInterrupt(){
     clearInterrupt();
 }
 void EdgeInterrupt::triggerInterrupt(){
+    // spdlog::info("Triggering interrupt");
     prevStatus = status;
     status = false;
 }

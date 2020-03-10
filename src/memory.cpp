@@ -4,6 +4,7 @@ using std::endl;
 
 Memory::Memory(char* path, Controller* controller){
     cartridge = new Cartridge(path);
+    memset(memory, 2*1024, 0);
     // this->ppu = ppu;
     this->controller = controller;
 }
@@ -37,9 +38,15 @@ unsigned char Memory::readAddress(unsigned short address){
     else if(address == 0x4017){
         return 0;
     }
+    else if(address<=0x401f){
+
+    }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
         return cartridge->readPRGAddress(prgRomAddress);
+    }
+    else{
+        spdlog::error("Error, Memory Address out of range");
     }
 }
 
@@ -50,10 +57,13 @@ unsigned char Memory::readCHRAddress(unsigned short address){
 
 void Memory::writeAddress(unsigned short address, char value){
     SPDLOG_INFO("Writing to: {0:x} value: {1:x}",address, value);
+    if(address == 0x2000){
+        SPGLOG_INFO("Writing to PPUCTRL: {0:x}\n", value);
+    }
     if(address >= 0x2008 && address <= 0x3fff){
         SPDLOG_INFO("Mirrored register access");
     }    
-    if(address <= 0x1FFF){
+    else if(address <= 0x1FFF){
         memory[address%0x800] = value;
     }
     //add for PPU registers
@@ -71,9 +81,14 @@ void Memory::writeAddress(unsigned short address, char value){
     else if(address == 0x4014){
         OAMDMA(value);
     }
+
+    // else if(address >= 0x4015 && address)
     else if(address>=0x8000&& address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
         // cartridge->write(prgRomAddress, value);
+    }
+    else{
+        // spdlog::error("Invalid Write Address: {0:x}", address);
     }
 
 }
