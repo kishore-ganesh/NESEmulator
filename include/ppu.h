@@ -58,6 +58,7 @@ class PPU
     bool renderFlag;
     unsigned char vram[2 * 1024];
     unsigned char internalBuffer[2 * 1024];
+    unsigned short baseAddress;
     bool addressLatch;
     bool inVblank;
     char registers[8];
@@ -169,7 +170,7 @@ public:
     unsigned char readRegister(Registers reg);
     void writeRegister(Registers reg, unsigned char value);
     void writeOAM(unsigned char address, unsigned char value);
-    unsigned short getNameTableAddress();
+    unsigned short getNameTableAddress(unsigned char nameTableNumber);
     short getBasePatternTableAddress(bool background);
     bool shouldInterrupt();
     void cycle();
