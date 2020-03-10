@@ -1,11 +1,20 @@
 # NESEmulator
 An emulator for the Nintendo Entertainment System - A Work in Progress
 
+
+## Screenshots
+
+![](Screenshots/nes_smb.gif)  
+![](Screenshots/Screenshot%202020-03-08%2000:20:44.png)
+
+
 Over the past few months, I've been working on creating an emulator for the Nintendo Entertainment System, a console from 1984
 that singlehandedly brought back the videogame industry from the brinks of extinction.
 
 It has specs that some may consider primitive in our times, with a paltry 2KB of RAM and a 1.79 Mhz 6502 CPU. It was a beast in its own age, however,
 with its custom Picture Processing Unit being one of the foremost 2D picture processors of that age.
+
+This project would not have been possible without the incredible reverse engineering knowledge on the Interwebs, particularly Nesdev, which proved to be an invaluable resource. 
 
 ## Current Status:
 
@@ -14,7 +23,12 @@ implemented with all of its instructions, and the baseline model for the PPU is 
 
 The PPU's scrolling is currently implemented in a crude manner, and needs to be refactored to become more cycle accurate.
 
+## Features
 
+-> 150 instructions (All right, you got me 50 instructions with 5 addressing modes)  
+-> Ricoh Picture Processing Unit  
+-> Logging using SPDLog (Enable compile time options to see logs)  
+-> Rendering using SDL  
 
 ## File Structure:
 
@@ -34,8 +48,8 @@ The PPU's scrolling is currently implemented in a crude manner, and needs to be 
         │   └── util.h
         ├── lib
         ├── Makefile
-        ├── rgb_struct_new.py
-        ├── rgb_struct.py
+        ├── rgb_struct_new.py - Helper script written to format the pallete colors in code
+        ├── rgb_struct.py 
         └── src
             ├── cartridge.cpp - Contains code for handling Cartridge Loading
             ├── controller.cpp - Input Handled here
