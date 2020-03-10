@@ -58,6 +58,7 @@ class PPU
     bool renderFlag;
     unsigned char vram[2 * 1024];
     unsigned char internalBuffer[2 * 1024];
+    bool addressLatch;
     char registers[8];
     short scroll;
     unsigned short upperPattern, lowerPattern;
@@ -179,6 +180,7 @@ public:
     bool shouldRender();
     bool getCyclesLeft();
     void setMirroringMode(bool mode);
+    unsigned short getAddress();
 };
 
 /*

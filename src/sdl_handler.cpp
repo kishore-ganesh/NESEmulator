@@ -59,7 +59,7 @@ void SDLHandler::begin(){
         // if(nes->shouldRender()){
         //     displayFrame(nes->getFrame());
         // }
-        while(nes->ppuCyclesLeft()){
+        if(nes->ppuCyclesLeft()){
             SPDLOG_INFO("IN PPU CYCLE");
             nes->ppuCycle();
             if(nes->shouldRender()){

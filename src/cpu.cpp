@@ -70,6 +70,9 @@ short CPU::readLittleEndian(unsigned short address){
 }
 void CPU::writeAddress(unsigned short address, char value){
     cycles++;
+    if(address == 0x4014){
+        cycles += 512;
+    }
     if(address == 0x4016){
         shouldCaptureInput = value & 0x01;
         stopCaptureInput = !shouldCaptureInput;
@@ -87,10 +90,10 @@ void CPU::readImmediate(unsigned short& PC, unsigned short& address){
 }
 
 void CPU::readZeroPage(unsigned short& PC, unsigned short& address){
-    SPDLOG_INFO("ZERO PAGE {0:x}", address);
     PC = PC + 1;
     address = (readAddress(PC))&0x00FF;
-    SPDLOG_INFO("ZERO PAGE READ {0:x}", address);
+    SPDLOG_INFO("ZERO PAGE from PC: {0:x} address: {1:x}", PC, address);
+    // SPDLOG_INFO("ZERO PAGE READ {0:x}", address);
 }
 
 void CPU::readAbsolute(unsigned short& PC, unsigned short &address){
