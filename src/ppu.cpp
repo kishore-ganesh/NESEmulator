@@ -483,7 +483,7 @@ void PPU::renderTile(TileInfo tileInfo){
         else{
             // SPDLOG_INFO("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
             if(x < 256){
-                if(!isTransparent && !tileInfo.priority){
+                if(!isTransparent && (!tileInfo.priority || transparentPallete==getPixel(x, currentScanline))){
                     // SPDLOG_INFO("SPRITE {}");
                     setPixel(x, currentScanline, palletes[palleteIndex]);
                 }
