@@ -18,13 +18,14 @@ PPU::PPU(Memory* memory, EdgeInterrupt* NMI){
     this->yscroll = 0;
     this->addressLatch = false;
     this->inVblank = false;
+    this->internalBuffer = 0;
     setRegister(PPUCTRL, 0);
     setRegister(PPUMASK, 0);
     setRegister(PPUSTATUS, 0xA0);
     setRegister(OAMADDR, 0x0);
     setRegister(PPUADDR, 0);
     
-    memset(internalBuffer, 2*1024, 0);
+    // memset(internalBuffer, 10240, 0);
     
 }
 
@@ -33,7 +34,19 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
     // std::cout << address << std::endl;
     address = (address % 0x4000);
     if(address>=0x0000&&address<=0x1FFF){
-        return memory->readCHRAddress(address);
+        if(!external){
+            // internalBuffer[address] = memory->readCHRAddress(address);
+            return memory->readCHRAddress(address);
+        }
+        else{
+            
+            // SPDLOG_INFO("EXTERNAL CHR");
+            char value = internalBuffer;
+            internalBuffer = memory->readCHRAddress(address);
+            return value;
+            // return memory->readCHRAddress(address);
+        }
+        
     }
     if (address >= 0x2000 && address <= 0x2FFF){
         SPDLOG_INFO("Mirroring mode: {}", mirroringMode == Mirroring::VERTICAL);
@@ -49,8 +62,8 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
                     return vram[baseAddress + offset];
                 }
                 else{
-                    char value = internalBuffer[baseAddress + offset];
-                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
+                    char value = internalBuffer;
+                    internalBuffer = vram[baseAddress + offset];
                     return value;
                 }
                 
@@ -59,14 +72,17 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
             case Mirroring::VERTICAL: {
                 unsigned short baseAddress = ((address < 0x2400) || (address >= 0x2800 && address < 0x2c00) ) ? 0x000: 0x400;
                 unsigned short offset = (address % 0x400);
+                // SPDLOG_INFO("IN VERTICAL")
                 // SPDLOG_INFO("Address: {0:x}, Calculated: {1:x}", address, baseAddress);
                 if(!external){
                     // internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
                     return vram[baseAddress + offset];
                 }
                 else{
-                    char value = internalBuffer[baseAddress + offset];
-                    internalBuffer[baseAddress + offset] = vram[baseAddress + offset];
+                    // return vram[baseAddress + offset];
+                    
+                    char value = internalBuffer;
+                    internalBuffer = vram[baseAddress + offset];
                     return value;
                 }
                 // return vram[baseAddress + offset];
@@ -102,7 +118,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external)
 void PPU::writeAddress(unsigned short address, char value){
     address = (address%0x4000);
     if(!inVblank){
-        spdlog::info("WRITING OUTSIDE OF VBLANK");
+        SPDLOG_INFO("WRITING OUTSIDE OF VBLANK");
     }
     if (address >= 0x2000 && address <= 0x2FFF){
         // spdlog::error("WRITE EXCEED");
@@ -190,7 +206,7 @@ unsigned char PPU::readRegister(Registers reg){
             break;
         }
         case PPUDATA: {
-            SPDLOG_INFO("READING FROM PPU DATA");
+            SPDLOG_INFO("READING FROM PPU ADDRESS: {0:x}", address);
             value = readAddress(address, true);
             char increment = getIncrement();
             // unsigned char currentAddress = getRegister(PPUADDR);
@@ -215,7 +231,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
     //Don't need to handle other cases, we're handling here
     SPDLOG_INFO("Register {0:d} set to {1:d}", (int)reg, value);
     if(!inVblank){
-        spdlog::warn("WRITING REGISTERS OUTSIDE OF VBLANK");
+        SPDLOG_INFO("WRITING REGISTERS OUTSIDE OF VBLANK");
     }
     if(reg == PPUCTRL && (value&0x03)!=(getRegister(PPUCTRL)&0x03)){
         SPDLOG_INFO("Register PPUCTRL changed");
@@ -273,7 +289,7 @@ void PPU::writeRegister(Registers reg, unsigned char value){
                 addressLatch =   false;
                 
             }
-            // SPDLOG_INFO("Value is: {0:x}, address now: {1:x}", value, address);
+            SPDLOG_INFO("Value is: {0:x}, address now: {1:x}", value, address);
             
             // address = (address << 8) | value;
             // address = (address%0x4000);

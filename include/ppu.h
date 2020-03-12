@@ -57,7 +57,7 @@ class PPU
     } mirroringMode;
     bool renderFlag;
     unsigned char vram[2 * 1024];
-    unsigned char internalBuffer[2 * 1024];
+    unsigned char internalBuffer;
     unsigned short baseAddress;
     bool addressLatch;
     bool inVblank;
