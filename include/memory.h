@@ -18,6 +18,7 @@ class Memory{
     void setPPU(PPU* ppu);
     unsigned char readAddress(unsigned short address);
     unsigned char readCHRAddress(unsigned short address);
+    void writeCHRAddress(unsigned short addres, char value);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);
     void OAMDMA(unsigned char data);

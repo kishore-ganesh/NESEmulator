@@ -41,12 +41,15 @@ unsigned char Memory::readAddress(unsigned short address){
     else if(address<=0x401f){
 
     }
+    else if(address>=0x6000 && address <= 0x7fff){
+        spdlog::info("Address access at: {0:x}", address);
+    }
     else if(address>=0x8000&&address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
         return cartridge->readPRGAddress(prgRomAddress);
     }
     else{
-        spdlog::error("Error, Memory Address out of range");
+        spdlog::error("Error, Memory Address out of range: {0:x}", address);
     }
 }
 
@@ -55,6 +58,9 @@ unsigned char Memory::readCHRAddress(unsigned short address){
     return cartridge->readCHRAddress(address);
 }
 
+void Memory::writeCHRAddress(unsigned short address, char value){
+    cartridge->writeCHRAddress(address, value);
+}
 void Memory::writeAddress(unsigned short address, char value){
     SPDLOG_INFO("Writing to: {0:x} value: {1:x}",address, value);
     if(address == 0x2000){
@@ -85,7 +91,7 @@ void Memory::writeAddress(unsigned short address, char value){
     // else if(address >= 0x4015 && address)
     else if(address>=0x8000&& address<=0xFFFF){
         short prgRomAddress = address - 0x8000;
-        // cartridge->write(prgRomAddress, value);
+        cartridge->write(prgRomAddress, value);
     }
     else{
         // spdlog::error("Invalid Write Address: {0:x}", address);

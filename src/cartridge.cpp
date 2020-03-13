@@ -2,27 +2,41 @@
 #include<algorithm>
 #include "cartridge.h"
 
+
 Cartridge::Cartridge(char *path)
 {
     FILE *rom = fopen(path, "r");
     fread(&header, sizeof(header), 1, rom);
-    PRG_ROM = new char[std::max(header.prgSize * 0x4000, 32768)];
-    printHeader(header);
-    if (header.flag[0] & 0x0004)
-    {
-        fseek(rom, 512, SEEK_CUR); //check this
+    type = (Mapper) (header.flag[0] >> 4);
+    spdlog::info("Cartridge type: {0:d}", type);
+    switch(type){
+        case Mapper::NROM: {
+            PRG_ROM = new char[std::max(header.prgSize * 0x4000, 32768)];
+            printHeader(header);
+            if (header.flag[0] & 0x0004)
+            {
+                fseek(rom, 512, SEEK_CUR); //check this
+            }
+
+            long pos = ftell(rom);
+            fread(PRG_ROM, header.prgSize * 0x4000, 1, rom);
+            //This done due to mirroring
+            if (header.prgSize == 1)
+            {
+                fseek(rom, pos, SEEK_SET);
+                fread(&PRG_ROM[0x4000], 0x4000, 1, rom); //check this
+            }
+
+            fread(CHR_ROM, header.chrSize*8192, 1, rom);
+                break;
+        }
+    
+    case Mapper::UNROM: {
+            unrom = new UNROM(rom);
+            break;
+        }
     }
 
-    long pos = ftell(rom);
-    fread(PRG_ROM, header.prgSize * 0x4000, 1, rom);
-    //This done due to mirroring
-    if (header.prgSize == 1)
-    {
-        fseek(rom, pos, SEEK_SET);
-        fread(&PRG_ROM[0x4000], 0x4000, 1, rom); //check this
-    }
-
-    fread(CHR_ROM, header.chrSize*8192, 1, rom);
 }
 
 void Cartridge::printHeader(iNES_Header header){
@@ -45,16 +59,36 @@ void Cartridge::printHeader(iNES_Header header){
 
 unsigned char Cartridge::readPRGAddress(unsigned short address)
 {
-    return PRG_ROM[address];
+    switch(type){
+        case Mapper::NROM: {return PRG_ROM[address]; break;}
+        case Mapper::UNROM: {return unrom->readAddress(address); break;}
+    }
+    
 }
 
 unsigned char Cartridge::readCHRAddress(unsigned short address){
     /* Have to add */
-    return CHR_ROM[address];
+    switch(type){
+        case Mapper::NROM: {return CHR_ROM[address]; break;}
+        case Mapper::UNROM: {return unrom->readCHRAddress(address); break;};
+    }
+    
+}
+
+void Cartridge::writeCHRAddress(unsigned short address, unsigned char value){
+    switch(type){
+        case Mapper::UNROM: {
+            unrom->writeCHRAddress(address, value);
+        }
+    }
 }
 
 void Cartridge::write(unsigned short address, char value){
-    PRG_ROM[address] = value;
+    switch(type){
+        case Mapper::NROM: {break;}
+        case Mapper::UNROM: {unrom->writeAddress(address, value); break;}
+    }
+    // PRG_ROM[address] = value;
 }   
 
 bool Cartridge::getMirroringMode(){

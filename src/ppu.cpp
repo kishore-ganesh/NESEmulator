@@ -120,6 +120,10 @@ void PPU::writeAddress(unsigned short address, char value){
     if(!inVblank){
         SPDLOG_INFO("WRITING OUTSIDE OF VBLANK");
     }
+    if( address <= 0x1FFF){
+        memory->writeCHRAddress(address, value);
+        // spdlog::info("CHR RAM WRITE ATTEMPT");
+    }
     if (address >= 0x2000 && address <= 0x2FFF){
         // spdlog::error("WRITE EXCEED");
         // if(address>0x27ff){
