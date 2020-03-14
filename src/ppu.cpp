@@ -354,6 +354,11 @@ void PPU::addCPUCycles(int cycles){
     cyclesLeft+=(cycles*3);
 }
 
+bool PPU::getSpriteMode(){
+    unsigned char regValue = getRegister(PPUCTRL);
+    return regValue & 0x20;
+}
+
 void PPU::fetchTile(int tileNumber){
     // Fix this
     // 
@@ -370,9 +375,6 @@ void PPU::fetchTile(int tileNumber){
     short basePatternTableAddress = getBasePatternTableAddress(true);
     SPDLOG_INFO("Base pattern address: {0:x}", basePatternTableAddress);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
-    // printf("NAMETABLE OFFSET %d", nameTableOffset);
-    //Check this again
-    // short attributeNameTableAddress = (nameTableOffset % 32)/4 + (nameTableOffset/128)*8;
     // index = tileNumber/4, currentScanline/4
     // (index-1)*8 + currentScanline/4
     //That's where attribute from
@@ -382,20 +384,10 @@ void PPU::fetchTile(int tileNumber){
     unsigned short attributeOffset = (yIndex*8) + xIndex;
     unsigned short attributeAddress = baseAttributeTableAddress + attributeOffset;
     unsigned char attributeEntry = readAddress(attributeAddress, false);
-    
-    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
-    
-    // short attributeTableAddressOffset = (((attributeNameTableAddress)%16)/2)+(attributeNameTableAddress/32)*8; //Fix calculation
-
-    // unsigned char attributeEntry = readAddress(baseAttributeTableAddress + attributeNameTableAddress);
     char r, c;
     c = (tileNumber - xIndex*4)/2;
     r = (currentScanline/8 - yIndex*4)/2;
 
-    // r = ((nameTableOffset%32)/4)/4;
-
-    // r = (nameTableOffset/32) % 4;
-    // c = ((nameTableOffset%32))%4;
     SPDLOG_INFO("ROWS: {0:d},  COLUMNS: {1:d}", r, c);
     unsigned char offset = getOffset(r, c);
     attribute = (attributeEntry & (0x03 << (offset*2))) >> (offset*2); // check if this is correct for 2 tiles
@@ -416,19 +408,24 @@ TileInfo PPU::fetchSpriteTile(int oamIndex){
     // printf("")
     
     unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
+    if(getSpriteMode()){
+        // spdlog::info("8x16 chosen")
+        baseSpritePatternAddress = (secondaryOAM[oamIndex].tileIndex & 0x01) ? 0x1000 : 0x0000;
+    }
     //Modify for 8x16
     unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
     bool verticalFlip = secondaryOAM[oamIndex].attributes & 0x80;
     bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
     // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
 
-    // printf("LINENO: %d, CURRS: %d", lineNo, currentScanline%8);
+    // spdlog::info("LINENO: %d, CURRS: %d", lineNo, currentScanline%8);
     if(verticalFlip){
+        // spdlog::info("Vertical")
         lineNo = 7 - lineNo;
     }
 
     // printf("ATTRIBUTES: %d", attribute);
-    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + lineNo;
+    unsigned short patternAddress = baseSpritePatternAddress + (secondaryOAM[oamIndex].tileIndex * 16) + (lineNo/8)*16 + (lineNo%8);
     unsigned char upperTile = readAddress(patternAddress, false);
     unsigned char lowerTile = readAddress(patternAddress + 8, false);
     struct TileInfo tileInfo = {
@@ -532,7 +529,9 @@ void PPU::generateFrame(int cycles){
     for(int oamIndex = 0; oamIndex < 256; oamIndex+=4){
                 //Should be absolute distance
         SPDLOG_INFO("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex+3],OAM[oamIndex], currentScanline);
-        if((abs(currentScanline - OAM[oamIndex] - 1))<8 && secondaryOAM.size() < 8){
+        char maxHeight = getSpriteMode() ? 16 : 8;
+        char difference = currentScanline - OAM[oamIndex] - 1;
+        if(difference<maxHeight && difference >= 0 && secondaryOAM.size() < 8){
                 //Add size check
             secondaryOAM.push_back({OAM[oamIndex]+1, OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
         }
@@ -566,9 +565,11 @@ void PPU::generateFrame(int cycles){
 
                 for(int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++){
                     char lineNo = currentScanline  - secondaryOAM[oamIndex].y;
-                    if(secondaryOAM[oamIndex].y > currentScanline || lineNo > 7 || secondaryOAM[oamIndex].x > (7 + (i-2)*8)){
+                    char maxLines = getSpriteMode() ? 15 : 7;
+                    if(secondaryOAM[oamIndex].y > currentScanline || lineNo > maxLines || secondaryOAM[oamIndex].x > (7 + (i-2)*8)){
                            continue;
                     }
+                    // spdlog::info("LINENO IS: {0:d}", lineNo);
                     secondaryOAM[oamIndex].print();
 
                     // Attribute - Flip

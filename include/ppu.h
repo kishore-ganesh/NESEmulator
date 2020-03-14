@@ -158,6 +158,7 @@ public:
     unsigned char getRegister(Registers reg);
     void setRegister(Registers reg, char value);
     char getIncrement();
+    bool getSpriteMode();
     void addCycles(int cycles);
     void addCPUCycles(int cycles);
     void fetchTile(int tileNumber);
