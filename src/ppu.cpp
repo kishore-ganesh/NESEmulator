@@ -468,7 +468,7 @@ void PPU::renderTile(TileInfo tileInfo){
             x = tileInfo.x + 7 - (patternBit);
         }
         RGB transparentPallete = palletes[readAddress(0x3F00, false)];
-        if(!tileInfo.background && tileInfo.spriteIndex == 0  && !isTransparent && !(transparentPallete==getPixel(x, currentScanline))){
+        if(!tileInfo.background && tileInfo.spriteIndex == 0  && !isTransparent && x < 256 && !(transparentPallete==getPixel(x, currentScanline))){
             // SPDLOG_INFO("Background is: {}")
             SPDLOG_INFO("SPRITE ZERO HIT at x: {0:d}, scanline: {1:d}", x, currentScanline);
             unsigned char ppuStatus = getRegister(PPUSTATUS);
