@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<iostream>
 #include "controller.h"
+#include "apu.h"
 
 class NES{
     public:
@@ -11,6 +12,7 @@ class NES{
     CPU* cpu;
     Memory* memory;
     PPU* ppu;
+    APU* apu;
     Controller* controller;
     int cpuCycles;
     /*

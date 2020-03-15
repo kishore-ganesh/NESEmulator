@@ -4,7 +4,9 @@ project("NES Emulator")
 find_package(SDL2 REQUIRED)
 find_package(spdlog REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
-set(SOURCES src/ppu.cpp src/nes.cpp src/cpu.cpp src/memory.cpp src/cartridge.cpp src/sdl_handler.cpp src/interrupt.cpp src/controller.cpp src/unrom_mapper.cpp)
+set(SOURCES src/ppu.cpp src/nes.cpp src/cpu.cpp src/memory.cpp src/cartridge.cpp
+    src/sdl_handler.cpp src/interrupt.cpp src/controller.cpp
+    src/unrom_mapper.cpp src/apu.cpp)
 add_executable(nes ${SOURCES} src/main.cpp)
 string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
 target_link_libraries(nes ${SDL2_LIBRARIES} spdlog::spdlog)

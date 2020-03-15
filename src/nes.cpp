@@ -13,7 +13,8 @@ NES::NES(char *path)
 {
     //add CPU code
     controller = new Controller();
-    memory = new Memory(path, controller);
+    apu = new APU();
+    memory = new Memory(path, controller, apu);
     cpu = new CPU(memory);
     ppu = new PPU(memory, cpu->getNMIPointer());
     memory->setPPU(ppu);

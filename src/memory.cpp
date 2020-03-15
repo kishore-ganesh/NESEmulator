@@ -2,11 +2,12 @@
 using std::cout;
 using std::endl;
 
-Memory::Memory(char* path, Controller* controller){
+Memory::Memory(char* path, Controller* controller, APU* apu){
     cartridge = new Cartridge(path);
     memset(memory, 2*1024, 0);
     // this->ppu = ppu;
     this->controller = controller;
+    this->apu = apu;
 }
 
 void Memory::setPPU(PPU* ppu){
@@ -29,7 +30,9 @@ unsigned char Memory::readAddress(unsigned short address){
         return ppu->readRegister((Registers)(address % 8));
     }
     // have mirroring
-
+    else if(address >= 0x4000 && address <= 0x4015){
+        return apu->readRegister(address);
+    }
     else if(address==0x4016){
         SPDLOG_INFO("Input address: {0:x}", address);
         SPDLOG_INFO("INPUT");
@@ -38,9 +41,7 @@ unsigned char Memory::readAddress(unsigned short address){
     else if(address == 0x4017){
         return 0;
     }
-    else if(address<=0x401f){
 
-    }
     else if(address>=0x6000 && address <= 0x7fff){
         spdlog::info("Address access at: {0:x}", address);
     }
@@ -86,6 +87,10 @@ void Memory::writeAddress(unsigned short address, char value){
     // Have mirroring here  
     else if(address == 0x4014){
         OAMDMA(value);
+    }
+
+    else if(address >= 0x4000 && address <= 0x4015){
+        apu->writeRegister(address, value);
     }
 
     // else if(address >= 0x4015 && address)

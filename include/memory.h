@@ -4,6 +4,7 @@
 #include "cartridge.h"
 #include "ppu.h"
 #include "controller.h"
+#include "apu.h"
 class PPU;
 /*
 Class for common memory bus operations ( this is shared between CPU, PPU and APU)
@@ -13,8 +14,9 @@ class Memory{
     PPU* ppu;
     Cartridge* cartridge;
     Controller* controller;
+    APU* apu;
     public:
-    Memory(char* path, Controller* controller);
+    Memory(char* path, Controller* controller, APU* apu);
     void setPPU(PPU* ppu);
     unsigned char readAddress(unsigned short address);
     unsigned char readCHRAddress(unsigned short address);
