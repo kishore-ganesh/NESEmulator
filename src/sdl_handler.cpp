@@ -60,6 +60,7 @@ void SDLHandler::begin(){
         //     displayFrame(nes->getFrame());
         // }
         // nes->apu->writeRegister(0, 0);
+        // nes->apu->cycle();
         while(nes->ppuCyclesLeft()){
             SPDLOG_INFO("IN PPU CYCLE");
             nes->ppuCycle();

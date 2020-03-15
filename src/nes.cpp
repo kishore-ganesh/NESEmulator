@@ -50,6 +50,7 @@ void NES::cpuCycle(){
         controller->stopCapture();
     }
     ppu->addCPUCycles(cpuCycles);
+    apu->addCPUCycles(cpuCycles);
 }
 
 bool NES::ppuCyclesLeft(){
