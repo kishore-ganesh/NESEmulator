@@ -8,7 +8,7 @@ APU::APU(){
     want.freq = 44100;
     want.format = AUDIO_S16LSB;
     want.channels = 1;
-    want.samples = 4096;
+    want.samples = 2048;
     want.callback = NULL;
     dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
     if(dev == 0){
@@ -116,10 +116,15 @@ void APU::cycle(){
             }
         }
     }
-    unsigned short pulse1Output = pulse1.cycle();
-    unsigned short pulse2Output = pulse2.cycle();
+    
+
     // spdlog::info("PULSE CYCLES FETCHED");
-    unsigned short triangleOutput = 0, dmcOutput = 0, noiseOutput = 0;
+    unsigned short pulse1Output = 0, pulse2Output = 0, triangleOutput = 0, dmcOutput = 0, noiseOutput = 0;
+    pulse1Output = pulse1.cycle();
+    pulse2Output = pulse2.cycle();
+    triangle.cycle();
+    triangleOutput = triangle.cycle();
+    // spdlog::info("Triangle output: {0:d}", triangleOutput);
     if((status & (int)EnableMasks::PULSE1)==0){
         // spdlog::info("PULSE 1 DISABLED");
         pulse1Output = 0;
@@ -164,7 +169,7 @@ void APU::cycle(){
     // double totalOutput = sin(2*3.14*10*samplesIndex);
     // int sign = (samples
     // Index%8==0)?1:-1;
-    double rescaledOutput = (totalOutput*10000);
+    double rescaledOutput = (totalOutput*32768);
     // spdlog::info("Queued: {0:d}SDL_GetQueuedAudioSize()
     unsigned short total8BitOutput = rescaledOutput;
     // total8BitOutput = (sin(samplesIndex)+1.0)*100;
@@ -177,7 +182,7 @@ void APU::cycle(){
     if(samplesIndex == 2047){
         // spdlog::info("Playing");
         samplesIndex = 0;
-        int status = SDL_QueueAudio(dev, samples, 2048*2);
+        int status = SDL_QueueAudio(dev, samples, 2048*sizeof(total8BitOutput));
         if(status == -1){
             spdlog::error("Unable to play: {0:s}", SDL_GetError());
         }
@@ -248,6 +253,7 @@ void PulseGenerator::writeRegister(unsigned short address, unsigned char value){
             break;
         }
         case 3 : {
+
             time &= 0x00FF;
             time |= ((value & 0x07)<<8);
             timer = time;
@@ -289,5 +295,47 @@ unsigned short PulseGenerator::cycle(){
 }
 
 void TriangleGenerator::writeRegister(unsigned short address, unsigned char value){
+    // spdlog::info("Triangle write to {:x} value {:x}", address, value);
+    switch(address){
+        case 0x0: {
+            break;
+        }
+        case 0x2: {
+            time&= 0x0F00;
+            time|= value;
+            timer = time;
+            break;
+        }
+
+        case 0x3:{
+            // spdlog::info("Length");
+            time &= 0x00FF;
+            time |= ((value & 0x07)<<8);
+            timer = time;
+            currentSequenceIndex = 0;
+            length = (value >> 3);
+            break;
+        }
+    }
+}
+
+
+unsigned short TriangleGenerator::cycle(){
+    if(length == 0){
+        return 0;
+    }
+    // spdlog::info("Time is: {:d}", time);
+    timer--;
+
+    if(timer==0){
+        timer = time;
+        // spdlog::info("Cur rent sequence bit: {0:b}", currentSequenceBit);
+        currentSequenceIndex = (currentSequenceIndex + 1) % 32;
+    }
+
+    
+    // spdlog::info("Current duty cycle: {0:d}", dutyCycle);
+    //  spdlog::info("Current sequence: {0:d}", currentSequence);;
+    return sequence[currentSequenceIndex];
 
 }
