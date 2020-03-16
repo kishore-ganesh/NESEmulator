@@ -28,6 +28,8 @@ class NES{
     void cpuCycle();
     void ppuCycle();
     bool ppuCyclesLeft();
+    bool apuCyclesLeft();
+    void apuCycle();
     bool shouldRender();
     std::vector<std::vector<RGB>> getFrame();
 };

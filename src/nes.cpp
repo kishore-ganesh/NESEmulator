@@ -53,6 +53,13 @@ void NES::cpuCycle(){
     apu->addCPUCycles(cpuCycles);
 }
 
+bool NES::apuCyclesLeft(){
+    return apu->getCyclesLeft();
+}
+
+void NES::apuCycle(){
+    apu->cycle();
+}
 bool NES::ppuCyclesLeft(){
     return ppu->getCyclesLeft();
 }

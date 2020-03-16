@@ -20,6 +20,10 @@ void SDLHandler::handleEvent()
 void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
 {
     // printf("FRAME \n");
+    // time(&end);
+    end = std::chrono::steady_clock::now();
+
+    // std::cout << "FPS: " << 1000.0/std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()  << std::endl;
     unsigned char srcPixels[256*240*3];
     int index = 0;
     for (int y = 0; y < 240; y++)
@@ -47,10 +51,13 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
     SDL_UnlockTexture(texture);
     SDL_RenderCopy(renderer, texture, NULL, NULL ); //Update screen SDL_RenderPresent( gRenderer );
     SDL_RenderPresent(renderer);
+    start = std::chrono::steady_clock::now();
+    // time(&start);
     // SDL_RenderPresent(renderer);
 }
 
 void SDLHandler::begin(){
+    // spdlog::info("NES: {0:p}", (void*)nes->apu);
     while(!shouldQuit){
         handleEvent();
         SPDLOG_INFO("CYCLE");
@@ -61,6 +68,10 @@ void SDLHandler::begin(){
         // }
         // nes->apu->writeRegister(0, 0);
         // nes->apu->cycle();
+        while(nes->apuCyclesLeft()){
+            // spdlog::info("IN APU CYCLE");
+            nes->apuCycle();
+        }
         while(nes->ppuCyclesLeft()){
             SPDLOG_INFO("IN PPU CYCLE");
             nes->ppuCycle();
@@ -69,6 +80,8 @@ void SDLHandler::begin(){
                 displayFrame(nes->getFrame());
             }
         }
+
+       
         
     }
 }

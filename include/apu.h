@@ -9,12 +9,17 @@ class PulseGenerator{
     unsigned char dutyCycle;
     unsigned char volume;
     unsigned char length;
+    unsigned char sweepUnit;
+    unsigned char sweepPeriod;
+    unsigned char currentSweepPeriod;
     bool lengthCounterHalt, volumeFlag;
     unsigned char currentSequence;
     int currentSequenceIndex;
     public:
     void writeRegister(unsigned short address, unsigned char value);
     unsigned char cycle();
+    bool getCyclesLeft();
+    void sweep();
 };
 
 class TriangleGenerator{
@@ -28,12 +33,14 @@ class APUSweep{
 
 class APU{
     int cyclesLeft;
+    int currentCycle;
+    int samplesIndex;
     SDL_AudioDeviceID dev;
     unsigned char status;
     unsigned char frameCounter;
     PulseGenerator pulse1, pulse2;
     TriangleGenerator triangle;
-
+    char samples[8192];
     enum class EnableMasks{
         DMC = 0x10,
         NOISE = 0x08,

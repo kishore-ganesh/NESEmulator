@@ -2,6 +2,7 @@
 #include "util.h"
 #include "nes.h"
 #include<vector>
+#include <chrono>
 class SDLHandler
 {
     SDL_Window *window;
@@ -9,6 +10,7 @@ class SDLHandler
     SDL_Texture* texture;
     NES* nes;
     bool shouldQuit = false;
+    std::chrono::steady_clock::time_point  start, end;
     public:
     SDLHandler(NES* nes)
     {
@@ -17,6 +19,7 @@ class SDLHandler
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, 256, 240);
         this->nes = nes;
+        start = std::chrono::steady_clock::now();
     }
 
     void handleEvent();
