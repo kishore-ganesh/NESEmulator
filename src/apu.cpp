@@ -6,9 +6,9 @@ APU::APU(){
     SDL_AudioSpec want, have;
     SDL_zero(want);
     want.freq = 44100;
-    want.format = AUDIO_U8;
+    want.format = AUDIO_S16LSB;
     want.channels = 1;
-    want.samples = 1024;
+    want.samples = 4096;
     want.callback = NULL;
     dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
     if(dev == 0){
@@ -17,7 +17,7 @@ APU::APU(){
     SDL_PauseAudioDevice(dev, 0);
     spdlog::info("Audio device: {0:d}", dev);
     spdlog::info("Having: Freq: {0:d},  Format: {1:d}, Samples: {2:d}, Channels: {3:d},", have.freq, have.format, have.samples, have.channels);
-    memset(samples, 255, 8192);
+    memset(samples, 0, 8192*sizeof(short));
     samplesIndex = 0;
     status = 0;
     cyclesLeft = 0;
@@ -116,10 +116,10 @@ void APU::cycle(){
             }
         }
     }
-    unsigned char pulse1Output = pulse1.cycle();
-    unsigned char pulse2Output = pulse2.cycle();
+    unsigned short pulse1Output = pulse1.cycle();
+    unsigned short pulse2Output = pulse2.cycle();
     // spdlog::info("PULSE CYCLES FETCHED");
-    unsigned char triangleOutput = 0, dmcOutput = 0, noiseOutput = 0;
+    unsigned short triangleOutput = 0, dmcOutput = 0, noiseOutput = 0;
     if((status & (int)EnableMasks::PULSE1)==0){
         // spdlog::info("PULSE 1 DISABLED");
         pulse1Output = 0;
@@ -164,9 +164,9 @@ void APU::cycle(){
     // double totalOutput = sin(2*3.14*10*samplesIndex);
     // int sign = (samples
     // Index%8==0)?1:-1;
-    double rescaledOutput = (totalOutput*128);
+    double rescaledOutput = (totalOutput*10000);
     // spdlog::info("Queued: {0:d}SDL_GetQueuedAudioSize()
-    unsigned char total8BitOutput = rescaledOutput;
+    unsigned short total8BitOutput = rescaledOutput;
     // total8BitOutput = (sin(samplesIndex)+1.0)*100;
     // if(totalOutput > 0)
     //  spdlog::info("TOTAL OUTPUT IS: {0:f}", totalOutput);
@@ -177,11 +177,11 @@ void APU::cycle(){
     if(samplesIndex == 2047){
         // spdlog::info("Playing");
         samplesIndex = 0;
-        int status = SDL_QueueAudio(dev, samples, 2048);
+        int status = SDL_QueueAudio(dev, samples, 2048*2);
         if(status == -1){
             spdlog::error("Unable to play: {0:s}", SDL_GetError());
         }
-        memset(samples, 0, 2048);
+        memset(samples, 0, 2048*2);
     }
     else{
         if((currentCycle %19)==0){
@@ -196,7 +196,7 @@ void PulseGenerator::sweep(){
     //During half period only
     if(currentSweepPeriod == 0){
         currentSweepPeriod = sweepPeriod;
-        if(sweepUnit & 0x08){
+        if(sweepUnit & 0x80){
             bool negate = (sweepUnit >> 3) & 0x01;
             unsigned char shift = (sweepUnit) & 0x07;
             unsigned short change = time >> shift;
@@ -259,7 +259,7 @@ void PulseGenerator::writeRegister(unsigned short address, unsigned char value){
     }
 }
 
-unsigned char PulseGenerator::cycle(){
+unsigned short PulseGenerator::cycle(){
     if(length == 0 || time < 8){
         return 0;
     }

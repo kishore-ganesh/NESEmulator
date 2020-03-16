@@ -17,7 +17,7 @@ class PulseGenerator{
     int currentSequenceIndex;
     public:
     void writeRegister(unsigned short address, unsigned char value);
-    unsigned char cycle();
+    unsigned short cycle();
     bool getCyclesLeft();
     void sweep();
 };
@@ -40,7 +40,7 @@ class APU{
     unsigned char frameCounter;
     PulseGenerator pulse1, pulse2;
     TriangleGenerator triangle;
-    char samples[8192];
+    unsigned short samples[8192];
     enum class EnableMasks{
         DMC = 0x10,
         NOISE = 0x08,
