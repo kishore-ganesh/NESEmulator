@@ -8,7 +8,7 @@ APU::APU(){
     want.freq = 44100;
     want.format = AUDIO_U8;
     want.channels = 1;
-    want.samples = 8192*2;
+    want.samples = 1024;
     want.callback = NULL;
     dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
     if(dev == 0){
@@ -164,23 +164,29 @@ void APU::cycle(){
     // double totalOutput = sin(2*3.14*10*samplesIndex);
     // int sign = (samples
     // Index%8==0)?1:-1;
-    double rescaledOutput = (totalOutput/0.258)*255;
+    double rescaledOutput = (totalOutput*128);
+    // spdlog::info("Queued: {0:d}SDL_GetQueuedAudioSize()
     unsigned char total8BitOutput = rescaledOutput;
     // total8BitOutput = (sin(samplesIndex)+1.0)*100;
     // if(totalOutput > 0)
     //  spdlog::info("TOTAL OUTPUT IS: {0:f}", totalOutput);
-    samples[samplesIndex] = total8BitOutput;
-    if(samplesIndex == 8191){
+    if((currentCycle %19)==0){
+        samples[samplesIndex] = total8BitOutput;
+    }
+    
+    if(samplesIndex == 2047){
         // spdlog::info("Playing");
         samplesIndex = 0;
-        int status = SDL_QueueAudio(dev, samples, 8192);
+        int status = SDL_QueueAudio(dev, samples, 2048);
         if(status == -1){
             spdlog::error("Unable to play: {0:s}", SDL_GetError());
         }
-        memset(samples, 0, 8192);
+        memset(samples, 0, 2048);
     }
     else{
-        samplesIndex++;
+        if((currentCycle %19)==0){
+            samplesIndex++;
+        }
     }
     
 
@@ -202,7 +208,10 @@ void PulseGenerator::sweep(){
             //mutehere
         }
     }
-    currentSweepPeriod = currentSweepPeriod - 1;
+    else{
+        currentSweepPeriod = currentSweepPeriod - 1;
+    }
+    
 
 }
 
