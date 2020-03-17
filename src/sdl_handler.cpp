@@ -35,6 +35,9 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
             srcPixels[index] = pixel.r;
             srcPixels[index+1] = pixel.g;
             srcPixels[index+2] = pixel.b;
+            if(x%8==0 || y%8==0){
+            //    memset(&srcPixels[index], 255, 3);
+            }
             index+=3;
             // if(y==239 && x==255)
             // spdlog::info("Index is: {0:d}", index);

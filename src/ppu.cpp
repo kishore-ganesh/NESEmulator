@@ -532,7 +532,7 @@ void PPU::generateFrame(int cycles){
                 //Should be absolute distance
         SPDLOG_INFO("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex+3],OAM[oamIndex], currentScanline);
         char maxHeight = getSpriteMode() ? 16 : 8;
-        char difference = currentScanline - OAM[oamIndex] - 1;
+        int difference = currentScanline - OAM[oamIndex] - 1;
         if(difference<maxHeight && difference >= 0 && secondaryOAM.size() < 8){
                 //Add size check
             secondaryOAM.push_back({OAM[oamIndex]+1, OAM[oamIndex+1], OAM[oamIndex+2], OAM[oamIndex+3], oamIndex});
