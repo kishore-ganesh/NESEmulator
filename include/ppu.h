@@ -48,6 +48,7 @@ struct TileInfo{
     bool background;
     unsigned char spriteIndex;
     bool priority;
+    int bgTileIndex;
 };
 class PPU
 {
