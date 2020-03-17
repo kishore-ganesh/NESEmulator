@@ -41,6 +41,7 @@ class APU{
     int cyclesLeft;
     int currentCycle;
     int samplesIndex;
+    int sample;
     SDL_AudioDeviceID dev;
     unsigned char status;
     unsigned char frameCounter;

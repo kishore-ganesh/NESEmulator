@@ -22,6 +22,7 @@ APU::APU(){
     status = 0;
     cyclesLeft = 0;
     currentCycle = 0;
+    sample = 0;
 }
 
 unsigned char APU::readRegister(unsigned short address){
@@ -123,7 +124,7 @@ void APU::cycle(){
     pulse1Output = pulse1.cycle();
     pulse2Output = pulse2.cycle();
     triangle.cycle();
-    triangleOutput = triangle.cycle();
+    // triangleOutput = triangle.cycle();
     // spdlog::info("Triangle output: {0:d}", triangleOutput);
     if((status & (int)EnableMasks::PULSE1)==0){
         // spdlog::info("PULSE 1 DISABLED");
@@ -169,14 +170,18 @@ void APU::cycle(){
     // double totalOutput = sin(2*3.14*10*samplesIndex);
     // int sign = (samples
     // Index%8==0)?1:-1;
-    double rescaledOutput = (totalOutput*32768);
+    // double rescaledOutput = ((pulse1Output+pulse2Output)/30.0)*(65536/2);
+    double rescaledOutput = totalOutput * 65536.0;
     // spdlog::info("Queued: {0:d}SDL_GetQueuedAudioSize()
     unsigned short total8BitOutput = rescaledOutput;
     // total8BitOutput = (sin(samplesIndex)+1.0)*100;
     // if(totalOutput > 0)
     //  spdlog::info("TOTAL OUTPUT IS: {0:f}", totalOutput);
+    sample += total8BitOutput;
     if((currentCycle %19)==0){
-        samples[samplesIndex] = total8BitOutput;
+        // samples[samplesIndex] = total8BitOutput;
+        samples[samplesIndex] = sample/19;
+        sample = 0;
     }
     
     if(samplesIndex == 2047){
