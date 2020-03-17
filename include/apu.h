@@ -28,9 +28,15 @@ class TriangleGenerator{
     unsigned short timer;
     unsigned short time;
     unsigned char length;
+    unsigned char linearCounter;
+    unsigned char reloadValue;
+    bool linearCounterReload;
+    bool controlFlag;
     public:
     void writeRegister(unsigned short address, unsigned char value);
     unsigned short cycle();
+    void linear();
+    void lengthCounter();
 };
 
 class APUSweep{

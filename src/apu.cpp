@@ -80,15 +80,18 @@ void APU::cycle(){
     bool fiveStep = frameCounter & 0x80;
     switch(currentCycle){
         case 3729: {
-
+            triangle.linear();
             break;
         }
         case 7457:{
             pulse1.sweep();
             pulse2.sweep();
+            triangle.lengthCounter();
+            triangle.linear();
             break;
         }
         case 11186: {
+            triangle.linear();
             break;
         }
         case 14914: {
@@ -103,6 +106,8 @@ void APU::cycle(){
                 currentCycle = 0;
                 pulse1.sweep();
                 pulse2.sweep();
+                triangle.lengthCounter();
+                triangle.linear();
             }
         }
         case 18641: {
@@ -113,6 +118,8 @@ void APU::cycle(){
             if(fiveStep){
                 pulse1.sweep();
                 pulse2.sweep();
+                triangle.lengthCounter();
+                triangle.linear();
                 currentCycle = 0;
             }
         }
@@ -124,7 +131,7 @@ void APU::cycle(){
     pulse1Output = pulse1.cycle();
     pulse2Output = pulse2.cycle();
     triangle.cycle();
-    // triangleOutput = triangle.cycle();
+    triangleOutput = triangle.cycle();
     // spdlog::info("Triangle output: {0:d}", triangleOutput);
     if((status & (int)EnableMasks::PULSE1)==0){
         // spdlog::info("PULSE 1 DISABLED");
@@ -303,6 +310,8 @@ void TriangleGenerator::writeRegister(unsigned short address, unsigned char valu
     // spdlog::info("Triangle write to {:x} value {:x}", address, value);
     switch(address){
         case 0x0: {
+            controlFlag = value & 0x80;
+            reloadValue = value & 0x7F;
             break;
         }
         case 0x2: {
@@ -319,14 +328,34 @@ void TriangleGenerator::writeRegister(unsigned short address, unsigned char valu
             timer = time;
             currentSequenceIndex = 0;
             length = (value >> 3);
+            linearCounterReload = true;
             break;
         }
     }
 }
 
+void TriangleGenerator::linear(){
+    if(linearCounterReload){
+        linearCounter = reloadValue;
+    }
+    else{
+        if(linearCounter > 0){
+            linearCounter --;
+        }
+        linearCounterReload = controlFlag;
+    }
+}
+
+void TriangleGenerator::lengthCounter(){
+    if(!controlFlag){
+        if(length > 0){
+            length --;
+        }
+    }
+}
 
 unsigned short TriangleGenerator::cycle(){
-    if(length == 0){
+    if(length == 0 || time < 2 || linearCounter==0){
         return 0;
     }
     // spdlog::info("Time is: {:d}", time);
