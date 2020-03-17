@@ -65,7 +65,7 @@ class PPU
     char registers[8];
     short scroll;
     unsigned short upperPattern, lowerPattern;
-    unsigned char attribute;
+    unsigned short attribute;
     unsigned short address;
     unsigned char xscroll;
     char yscroll;

@@ -390,7 +390,8 @@ void PPU::fetchTile(int tileNumber){
 
     SPDLOG_INFO("ROWS: {0:d},  COLUMNS: {1:d}", r, c);
     unsigned char offset = getOffset(r, c);
-    attribute = (attributeEntry & (0x03 << (offset*2))) >> (offset*2); // check if this is correct for 2 tiles
+    attribute&=(0x00FF);
+    attribute |= ((attributeEntry & (0x03 << (offset*2))) >> (offset*2))<<8; // check if this is correct for 2 tiles
     //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
     unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
     if(patternAddress > basePatternTableAddress + 0x0FFF){
@@ -543,6 +544,8 @@ void PPU::generateFrame(int cycles){
             for(int i = (currentCycle/8)+2 ; i < 34; i++){
                 unsigned char upperTile = upperPattern&0x00FF;
                 unsigned char lowerTile = lowerPattern&0x00FF;
+                unsigned char tileAttribute = attribute & 0x00FF;
+                // spdlog::info("Tile attribute is: {0:d}", tileAttribute);
                 if(cyclesLeft >= 8){
                     addCycles(8);
                 }
@@ -554,7 +557,7 @@ void PPU::generateFrame(int cycles){
                 struct TileInfo tileInfo = {
                     upperTile,
                     lowerTile,
-                    attribute,
+                    tileAttribute,
                     currentScanline,
                     (i-2)*8,
                     false,
@@ -590,6 +593,7 @@ void PPU::generateFrame(int cycles){
                 //Add HBlank here
                 upperPattern >>= 8;
                 lowerPattern >>= 8;
+                attribute >>= 8;
                 if(i<32){
                     fetchTile(i + xscroll/8);
                 }
@@ -672,6 +676,7 @@ void PPU::generateFrame(int cycles){
         if(cyclesLeft>=8){
             upperPattern >>= 8;
             lowerPattern >>= 8;
+            attribute >>= 8;
             addCycles(8);
             fetchTile(1 + xscroll/8);  
         }
