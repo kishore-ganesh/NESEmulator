@@ -74,7 +74,7 @@ class PPU
     int cyclesNeeded;
     int currentCycle;
     int currentScanline;
-
+    bool bgTransparency[256][240];
     std::vector<std::vector<RGB>> display = std::vector<std::vector<RGB>>(256, std::vector<RGB>(240));; //take care of x and y
     Memory *memory;
     EdgeInterrupt *NMI;
@@ -178,6 +178,7 @@ public:
     RGB getPixel(int x, int y);
     std::vector<std::vector<RGB>> getFrame();
     void setPixel(int x, int y, RGB value);
+    void clearTransparency();
     void generateFrame(int cycles);
     void displayFrame();
     bool shouldRender();

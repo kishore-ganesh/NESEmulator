@@ -455,9 +455,9 @@ void PPU::renderTile(TileInfo tileInfo){
             if(tileInfo.background){
                 palleteAddress = 0x3F00;
             }
-            else{
-                isTransparent = true;
-            }
+            
+            isTransparent = true;
+            
         }
         // SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
         char palleteIndex = readAddress(palleteAddress, false);
@@ -467,8 +467,7 @@ void PPU::renderTile(TileInfo tileInfo){
         if(tileInfo.horizontalFlip){
             x = tileInfo.x + 7 - (patternBit);
         }
-        RGB transparentPallete = palletes[readAddress(0x3F00, false)];
-        if(!tileInfo.background && tileInfo.spriteIndex == 0  && !isTransparent && x < 256 && !(transparentPallete==getPixel(x, currentScanline))){
+        if(!tileInfo.background && tileInfo.spriteIndex == 0  && !isTransparent && x < 256 && !bgTransparency[x][currentScanline]){
             // SPDLOG_INFO("Background is: {}")
             SPDLOG_INFO("SPRITE ZERO HIT at x: {0:d}, scanline: {1:d}", x, currentScanline);
             unsigned char ppuStatus = getRegister(PPUSTATUS);
@@ -477,6 +476,7 @@ void PPU::renderTile(TileInfo tileInfo){
 
         if(tileInfo.background){
             if((x - xscroll%8 )>=0){
+                bgTransparency[x-xscroll%8][currentScanline] = isTransparent;
                 // SPDLOG_INFO("Background x: {0:d}, y: {1:d} is: {2:x}", x-xscroll%8, tileInfo.y, palleteAddress);
                 setPixel(x - xscroll%8, currentScanline, palletes[palleteIndex]);
             }
@@ -484,8 +484,8 @@ void PPU::renderTile(TileInfo tileInfo){
         else{
             // SPDLOG_INFO("x: {0:d}, y: {1:d}, actualX: {2:d}", x, tileInfo.y, tileInfo.x);
             if(x < 256){
-                if(!isTransparent && (!tileInfo.priority || transparentPallete==getPixel(x, currentScanline))){
-                    // SPDLOG_INFO("SPRITE {}");
+                if(!isTransparent && (!tileInfo.priority || bgTransparency[x][currentScanline])){
+                    SPDLOG_INFO("SPRITE {}");
                     setPixel(x, currentScanline, palletes[palleteIndex]);
                 }
             }
@@ -509,6 +509,7 @@ void PPU::generateFrame(int cycles){
     if(currentCycle==0){
         if(cyclesLeft>=1){
             if(currentScanline==-1){
+                clearTransparency();
                 unsigned char ppuStatus = getRegister(PPUSTATUS);
                 SPDLOG_INFO("Sprite zero cleared");
                 setRegister(PPUSTATUS, ppuStatus & ~(0x40));
@@ -700,6 +701,14 @@ RGB PPU::getPixel(int x, int y){
 void PPU::setPixel(int x, int y, RGB value){
     // std::cout << x << " " << y << std::endl;
     display[x][y] = value;
+}
+
+void PPU::clearTransparency(){
+    for(int x = 0; x < 256; x++){
+        for(int y = 0; y < 240; y++){
+            bgTransparency[x][y] = 0;
+        }
+    }
 }
 
 std::vector<std::vector<RGB>> PPU::getFrame(){
