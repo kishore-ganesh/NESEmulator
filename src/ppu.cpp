@@ -369,31 +369,37 @@ void PPU::fetchTile(int tileNumber){
         baseNameTableAddress += 0x400;
         tileNumber = tileNumber % 32;
     }
-    short nameTableOffset = tileNumber + (currentScanline/8) * 32;
+    int baseY = currentScanline + yscroll;
+    if(baseY > 239){
+        baseNameTableAddress += 0x800;
+        baseY = baseY % 240;
+    }
+    short nameTableOffset = tileNumber + (baseY/8) * 32;
     // SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}", baseNameTableAddress+nameTableOffset);
     unsigned char nameTableEntry = readAddress(baseNameTableAddress + nameTableOffset, false);    
     short basePatternTableAddress = getBasePatternTableAddress(true);
     SPDLOG_INFO("Base pattern address: {0:x}", basePatternTableAddress);
+    // spdlog::info("Base nametable address: {:x}", baseNameTableAddress);
     short baseAttributeTableAddress = baseNameTableAddress + 0x3C0; //check this, make this only one memory acces
     // index = tileNumber/4, currentScanline/4
     // (index-1)*8 + currentScanline/4
     //That's where attribute from
     //Offset is equal to (t-x*4)/4, currentScanline - (currentScanline/4)*4
     short xIndex = tileNumber/4;
-    short yIndex = (currentScanline/8)/4;
+    short yIndex = (baseY/8)/4;
     unsigned short attributeOffset = (yIndex*8) + xIndex;
     unsigned short attributeAddress = baseAttributeTableAddress + attributeOffset;
     unsigned char attributeEntry = readAddress(attributeAddress, false);
     char r, c;
     c = (tileNumber - xIndex*4)/2;
-    r = (currentScanline/8 - yIndex*4)/2;
+    r = (baseY/8 - yIndex*4)/2;
 
     SPDLOG_INFO("ROWS: {0:d},  COLUMNS: {1:d}", r, c);
     unsigned char offset = getOffset(r, c);
     attribute&=(0x00FF);
     attribute |= ((attributeEntry & (0x03 << (offset*2))) >> (offset*2))<<8; // check if this is correct for 2 tiles
     //Multiplying by 16 since each pattern has two consecutive parts (The upper part and the lower part)
-    unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (currentScanline%8); // Should not be current scanline
+    unsigned short patternAddress = nameTableEntry*16 + basePatternTableAddress + (baseY%8); // Should not be current scanline
     if(patternAddress > basePatternTableAddress + 0x0FFF){
         SPDLOG_INFO("Pattern address: {0:x}", patternAddress);
     }
