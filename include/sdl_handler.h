@@ -9,7 +9,7 @@ class SDLHandler
     SDL_Renderer *renderer;
     SDL_Texture* texture;
     unsigned int frameStartTicks;
-
+    unsigned int ticksInFrame;
     NES* nes;
     bool shouldQuit = false;
     std::chrono::steady_clock::time_point  start, end;
@@ -23,6 +23,7 @@ class SDLHandler
         this->nes = nes;
         start = std::chrono::steady_clock::now();
         frameStartTicks = SDL_GetTicks();
+        ticksInFrame = 18;
     }
 
     void handleEvent();

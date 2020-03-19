@@ -32,6 +32,13 @@ void NES::cycle()
     // }
 }
 
+void NES::setTime(unsigned int delta){
+    cpu->setTime(delta);
+}
+bool NES::hasCPUCycles(){
+    return cpu->hasCPUCycles();
+}
+
 bool NES::shouldRender(){
     return ppu->shouldRender();
 }

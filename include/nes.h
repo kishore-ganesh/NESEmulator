@@ -31,6 +31,8 @@ class NES{
     bool apuCyclesLeft();
     void apuCycle();
     bool shouldRender();
+    void setTime(unsigned int delta);
+    bool hasCPUCycles();
     std::vector<std::vector<RGB>> getFrame();
 };
 #endif
