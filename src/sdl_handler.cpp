@@ -54,7 +54,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
     SDL_UnlockTexture(texture);
     SDL_RenderCopy(renderer, texture, NULL, NULL ); //Update screen SDL_RenderPresent( gRenderer );
     SDL_RenderPresent(renderer);
-    start = std::chrono::steady_clock::now();
+    // start = std::chrono::steady_clock::now();
     // time(&start);
     // SDL_RenderPresent(renderer);
 }
@@ -62,7 +62,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
 void SDLHandler::begin(){
     // spdlog::info("NES: {0:p}", (void*)nes->apu);
     while(!shouldQuit){
-        handleEvent();
+        
         SPDLOG_INFO("CYCLE");
         nes->cpuCycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
         // nes->cycle();
@@ -80,7 +80,14 @@ void SDLHandler::begin(){
             nes->ppuCycle();
             if(nes->shouldRender()){
                 // spdlog::info("SHOULD RENDER");
+                handleEvent();
                 displayFrame(nes->getFrame());
+                unsigned int ticksInFrame = SDL_GetTicks() - frameStartTicks;
+                if(ticksInFrame < 1000/60.0){
+                    SDL_Delay(1000/60.0 - ticksInFrame);
+                }
+                frameStartTicks = SDL_GetTicks();
+                // SDL_Delay(16);
             }
         }
 

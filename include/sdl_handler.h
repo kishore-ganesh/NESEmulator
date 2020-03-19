@@ -8,6 +8,8 @@ class SDLHandler
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture* texture;
+    unsigned int frameStartTicks;
+
     NES* nes;
     bool shouldQuit = false;
     std::chrono::steady_clock::time_point  start, end;
@@ -20,6 +22,7 @@ class SDLHandler
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, 256, 240);
         this->nes = nes;
         start = std::chrono::steady_clock::now();
+        frameStartTicks = SDL_GetTicks();
     }
 
     void handleEvent();

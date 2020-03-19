@@ -744,7 +744,7 @@ void PPU::setMirroringMode(bool mode){
 bool PPU::getCyclesLeft(){
     // spdlog::info("PPU CYCLES LEFT: {0:d}", cyclesLeft);
     // Only effective if we're doing the whole frame here
-    return cyclesLeft > 341*240;
+    return cyclesLeft > 341;
 }
 
 unsigned short PPU::getAddress(){
