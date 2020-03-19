@@ -1,5 +1,5 @@
 #include "sdl_handler.h"
-
+#include <algorithm>
 void SDLHandler::handleEvent()
 {
     SDL_Event event;
@@ -62,34 +62,39 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display)
 void SDLHandler::begin(){
     // spdlog::info("NES: {0:p}", (void*)nes->apu);
     while(!shouldQuit){
-        
-        SPDLOG_INFO("CYCLE");
-        nes->cpuCycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
-        // nes->cycle();
-        // if(nes->shouldRender()){
-        //     displayFrame(nes->getFrame());
-        // }
-        // nes->apu->writeRegister(0, 0);
-        // nes->apu->cycle();
-        while(nes->apuCyclesLeft()){
-            // spdlog::info("IN APU CYCLE");
-            nes->apuCycle();
-        }
-        while(nes->ppuCyclesLeft()){
-            SPDLOG_INFO("IN PPU CYCLE");
-            nes->ppuCycle();
-            if(nes->shouldRender()){
-                // spdlog::info("SHOULD RENDER");
-                handleEvent();
-                displayFrame(nes->getFrame());
-                unsigned int ticksInFrame = SDL_GetTicks() - frameStartTicks;
-                if(ticksInFrame < 1000/60.0){
-                    SDL_Delay(1000/60.0 - ticksInFrame);
-                }
-                frameStartTicks = SDL_GetTicks();
-                // SDL_Delay(16);
+        nes->setTime(ticksInFrame);
+        ticksInFrame = std::min((unsigned int)18, SDL_GetTicks() - frameStartTicks);
+        // spdlog::info("CPU has cycles: {:b}", nes->hasCPUCycles());
+        while(nes->hasCPUCycles()){
+            // spdlog::info("CYCLE");
+            nes->cpuCycle();//Refactor into nes->CPucycle and nes->ppucycle so that we can get ppu to run as long
+            // nes->cycle();
+            // if(nes->shouldRender()){
+            //     displayFrame(nes->getFrame());
+            // }
+            // nes->apu->writeRegister(0, 0);
+            // nes->apu->cycle();
+            while(nes->apuCyclesLeft()){
+                // spdlog::info("IN APU CYCLE");
+                nes->apuCycle();
             }
+            while(nes->ppuCyclesLeft()){
+                SPDLOG_INFO("IN PPU CYCLE");
+                nes->ppuCycle();
+                if(nes->shouldRender()){
+                    // spdlog::info("SHOULD RENDER");
+                    handleEvent();
+                    displayFrame(nes->getFrame());
+                    // if(ticksInFrame < 1000/60.0){
+                    //     SDL_Delay(1000/60.0 - ticksInFrame);
+                    // 
+                    // SDL_Delay(16);
+                }
+            }
+
+            frameStartTicks = SDL_GetTicks();    
         }
+        
 
        
         

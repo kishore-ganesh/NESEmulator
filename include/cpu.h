@@ -9,6 +9,7 @@ class CPU{
     unsigned char A, X, Y, P; //check check setting of stack pointer
     unsigned char SP;
     int cycles;
+    int cyclesLeft;
     Memory* memory;
     bool shouldCaptureInput;
     bool stopCaptureInput;
@@ -27,6 +28,8 @@ class CPU{
     bool IRQ; // refactor
     CPU(Memory* memory);
     EdgeInterrupt* getNMIPointer();
+    void setTime(unsigned int delta);
+    bool hasCPUCycles();
     unsigned char readAddress(unsigned short address);
     void writeAddress(unsigned short address, char value);
     short readLittleEndian(unsigned short address);

@@ -14,6 +14,13 @@ CPU::CPU(Memory* memory){
     shouldCaptureInput = false;
 }
 
+void CPU::setTime(unsigned int delta){
+    cyclesLeft = (1.79 * 1000) * delta;
+}
+bool CPU::hasCPUCycles(){
+    return cyclesLeft > 0;
+}
+
 EdgeInterrupt* CPU::getNMIPointer(){
     return &NMI;
 }
@@ -309,6 +316,7 @@ int CPU::cycle(){
     char instruction = readAddress(PC);
     processInstruction(instruction);
     PC = PC + 1; //check for jump
+    cyclesLeft -= cycles; //May become negative once
     return cycles;
 }
 void CPU::ORA(unsigned short address){
