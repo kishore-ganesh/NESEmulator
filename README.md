@@ -4,7 +4,9 @@ An emulator for the Nintendo Entertainment System - A Work in Progress
 
 ## Screenshots
 
-![](Screenshots/nes_smb.gif)  
+![](Screenshots/nes_smb.gif)  ![](Screenshots/contra.gif)
+![](Screenshots/megaman.gif)
+![](Screenshots/nes_pop.png)
 ![](Screenshots/Screenshot%202020-03-08%2000:20:44.png)
 
 
@@ -18,10 +20,16 @@ This project would not have been possible without the incredible reverse enginee
 
 ## Current Status:
 
-Is able to boot up and play Donkey Kong and Super Mario Bros. It is in an early stage, with glitches in rendering. The CPU has been
-implemented with all of its instructions, and the baseline model for the PPU is ready. Audio hasn't been implemented yet.
+It is in a fairly stable state and is able to play many games (Including Donkey Kong, Contra, Super Mario Bros and more) perfectly (A minor glitch may pop up from time to time). 
 
-The PPU's scrolling is currently implemented in a crude manner, and needs to be refactored to become more cycle accurate.
+The CPU has been
+implemented with all of its instructions, and the baseline model for the PPU is ready. Although the PPU is mostly functional and pretty accurate, it needs to be refactored a fair bit. The PPU's scrolling is currently implemented in a crude manner, and needs to be refactored to become more cycle accurate.
+
+Audio support has also been implemented with 3/5 Audio channels (2 pulse and 1 Triangle) present. However, the audio resampling is currently not satisfactory and a low pass filter will make it much clearer. 
+
+One mapper (the UNROM mapper) has been implemented. I'm currently working on audio resampling and integrating MMC1 and MMC3 mappers. 
+
+
 
 ## Features
 
@@ -29,7 +37,7 @@ The PPU's scrolling is currently implemented in a crude manner, and needs to be 
 -> Ricoh Picture Processing Unit  
 -> Logging using SPDLog (Enable compile time options to see logs)  
 -> Rendering using SDL  
-
+-> Audio Processing Unit with 3/5 channels being implemented
 ## File Structure:
 
 
@@ -37,6 +45,7 @@ The PPU's scrolling is currently implemented in a crude manner, and needs to be 
         ├── color_structs
         ├── cpu
         ├── include
+        │   ├── apu.h
         │   ├── cartridge.h
         │   ├── controller.h
         │   ├── cpu.h
@@ -51,6 +60,7 @@ The PPU's scrolling is currently implemented in a crude manner, and needs to be 
         ├── rgb_struct_new.py - Helper script written to format the pallete colors in code
         ├── rgb_struct.py 
         └── src
+            ├── apu.cpp - The Audio Processing Unit of the NES
             ├── cartridge.cpp - Contains code for handling Cartridge Loading
             ├── controller.cpp - Input Handled here
             ├── cpu.cpp - The brains of the 6502 CPU
@@ -67,6 +77,8 @@ The PPU's scrolling is currently implemented in a crude manner, and needs to be 
 At every step, the CPU reads the next instruction at the address specified by the Program Counter, executes it, while counting cycles.
 The PPU runs 3 cycles for every CPU cycle, and there are a set of common memory locations used for communication between both. The PPU synthesizes an
 image from these locations, and outputs an RGB array, which is rendered through SDL.
+
+There are various strategies for keeping the CPU, PPU and APU in sync. I've gone with the run CPU an instruction and let the other units catch up strategy (Which works well till now).
 
 ## PPU Rendering
 
