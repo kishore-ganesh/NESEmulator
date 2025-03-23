@@ -24,7 +24,6 @@ public:
   bool IRQ, NMI;
   bool previousNMILevel;
   NES(char *path);
-  void cycle();
   void cpuCycle();
   void ppuCycle();
   bool ppuCyclesLeft();

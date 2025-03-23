@@ -1,5 +1,4 @@
 #include "ppu.h"
-#include <coro/coro.hpp>
 
 char getOffset(char r, char c) {
   char sum = r + c;

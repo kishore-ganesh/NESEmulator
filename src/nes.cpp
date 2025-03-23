@@ -19,17 +19,6 @@ NES::NES(char *path) {
   memory->setPPU(ppu);
 }
 
-void NES::cycle() {
-
-  int cpuCycles = cpu->cycle();
-  cpu->printStatus();
-  ppu->generateFrame(cpuCycles * 3);
-  // if (ppu->shouldRender())
-  // {
-  //     ppu->displayFrame();
-  // }
-}
-
 void NES::setTime(unsigned int delta) { cpu->setTime(delta); }
 bool NES::hasCPUCycles() { return cpu->hasCPUCycles(); }
 
