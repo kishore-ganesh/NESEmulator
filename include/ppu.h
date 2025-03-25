@@ -62,6 +62,7 @@ class PPU {
   char registers[8];
   short scroll;
   unsigned short upperPattern, lowerPattern;
+  bool bgTransparency[256][240];
   unsigned short attribute;
   unsigned short address;
   unsigned char xscroll;
@@ -71,7 +72,6 @@ class PPU {
   int cyclesLeft;
   int cyclesNeeded;
   int currentScanline;
-  bool bgTransparency[256][240];
   std::vector<std::vector<RGB>> display =
       std::vector<std::vector<RGB>>(256, std::vector<RGB>(240));
   ; // take care of x and y
@@ -82,7 +82,7 @@ class PPU {
   Later we will add NTSC decoding to mirror what the NES actually does
    */
 
-  RGB palletes[64] = {
+  constexpr static RGB palletes[64] = {
       {124, 124, 124}, {0, 0, 252},     {0, 0, 188},     {68, 40, 188},
       {148, 0, 132},   {168, 0, 32},    {168, 16, 0},    {136, 20, 0},
       {80, 48, 0},     {0, 120, 0},     {0, 104, 0},     {0, 88, 0},
