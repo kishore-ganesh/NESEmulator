@@ -18,7 +18,7 @@ class Memory {
   APU *apu;
 
 public:
-  Memory(char* path, Controller *controller, APU *apu);
+  Memory(char *path, Controller *controller, APU *apu);
   void setPPU(PPU *ppu);
   uint8_t readAddress(unsigned short address);
   uint8_t readCHRAddress(unsigned short address);

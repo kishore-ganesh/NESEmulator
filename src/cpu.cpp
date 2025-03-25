@@ -437,8 +437,9 @@ void CPU::ADC(unsigned short address) {
   short result = A + data + getFlag(CARRY);
   bool carryBit = result > 0xFF ? 1 : 0;
   uint8_t uint8_tResult = A + (uint8_t)data + getFlag(CARRY);
-  bool overFlowBit = ((uint8_t)A > 0 && (uint8_t)data > 0 && uint8_tResult < 0) ||
-                     ((uint8_t)A < 0 && (uint8_t)data < 0 && uint8_tResult > 0);
+  bool overFlowBit =
+      ((uint8_t)A > 0 && (uint8_t)data > 0 && uint8_tResult < 0) ||
+      ((uint8_t)A < 0 && (uint8_t)data < 0 && uint8_tResult > 0);
   A = A + (uint8_t)data + getFlag(CARRY);
   SPDLOG_INFO("A is now: {0:d}", A);
   checkValueFlags(A);
@@ -450,8 +451,9 @@ void CPU::SBC(unsigned short address) {
   SPDLOG_INFO("SBC with data: {0:x} from address: {1:x}", data, address);
   short result = A - data - !getFlag(CARRY);
   uint8_t uint8_tResult = A - (uint8_t)data - !getFlag(CARRY);
-  bool overFlowBit = ((uint8_t)A > 0 && (uint8_t)data < 0 && uint8_tResult < 0) ||
-                     ((uint8_t)A < 0 && (uint8_t)data > 0 && uint8_tResult > 0);
+  bool overFlowBit =
+      ((uint8_t)A > 0 && (uint8_t)data < 0 && uint8_tResult < 0) ||
+      ((uint8_t)A < 0 && (uint8_t)data > 0 && uint8_tResult > 0);
   SPDLOG_INFO("{0:d}", data);
   // bool borrowBit = A > data ? 0;
   // Short won't show overflow

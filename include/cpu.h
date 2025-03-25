@@ -41,10 +41,8 @@ public:
   void readImmediate(unsigned short &PC, unsigned short &address);
   void readZeroPage(unsigned short &PC, unsigned short &address);
   void readAbsolute(unsigned short &PC, unsigned short &address);
-  void readZeroPageX(unsigned short &PC, unsigned short &address,
-                     uint8_t X);
-  void readAbsoluteX(unsigned short &PC, unsigned short &address,
-                     uint8_t X);
+  void readZeroPageX(unsigned short &PC, unsigned short &address, uint8_t X);
+  void readAbsoluteX(unsigned short &PC, unsigned short &address, uint8_t X);
   void processInstruction(uint8_t instruction);
   int cycle();
   void OAMDMA(uint8_t data);

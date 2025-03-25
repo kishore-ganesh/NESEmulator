@@ -2,7 +2,7 @@
 using std::cout;
 using std::endl;
 
-Memory::Memory(char* path, Controller *controller, APU *apu) {
+Memory::Memory(char *path, Controller *controller, APU *apu) {
   cartridge = new Cartridge(path);
   memset(memory, 2 * 1024, 0);
   // this->ppu = ppu;
@@ -106,7 +106,7 @@ void Memory::OAMDMA(uint8_t highByte) {
   for (unsigned short i = 0x00; i <= (unsigned short)0xFF; i++) {
     // printf("OAM WRITING FROM: %x\n", (highByte<<8)|i);
     uint8_t data = readAddress((highByte << 8) |
-                            i); // Check that OAM DMA increases OAM Addresses
+                               i); // Check that OAM DMA increases OAM Addresses
     writeAddress(0x2004, data);
   }
 }

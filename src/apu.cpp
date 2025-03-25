@@ -222,8 +222,7 @@ void PulseGenerator::sweep() {
   }
 }
 
-void PulseGenerator::writeRegister(unsigned short address,
-                                   uint8_t value) {
+void PulseGenerator::writeRegister(unsigned short address, uint8_t value) {
   // spdlog::info("PULSE GENERATOR WRITE: {0:x}, value: {1:x}", address, value);
   switch (address) {
   case 0: {
@@ -303,8 +302,7 @@ unsigned short PulseGenerator::cycle() {
   return 0;
 }
 
-void TriangleGenerator::writeRegister(unsigned short address,
-                                      uint8_t value) {
+void TriangleGenerator::writeRegister(unsigned short address, uint8_t value) {
   // spdlog::info("Triangle write to {:x} value {:x}", address, value);
   switch (address) {
   case 0x0: {
