@@ -3,7 +3,7 @@
 
 #include "spdlog/spdlog.h"
 struct RGB {
-  unsigned char r, g, b;
+  uint8_t r, g, b;
   bool operator==(RGB other) {
     return this->r == other.r && this->g == other.g && this->b == other.b;
   }

@@ -5,8 +5,8 @@
 #include <map>
 class Controller {
 
-  unsigned char capturingStatus;
-  unsigned char providingStatus;
+  uint8_t capturingStatus;
+  uint8_t providingStatus;
   enum class ButtonMasks {
     A = 1,
     B = 2,

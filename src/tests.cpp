@@ -24,8 +24,8 @@ void SBC(NES &nes, int a, int b) {
 }
 
 void ADCTest(NES &nes) {
-  unsigned char firstOps[] = {80, 80, 80, 80, 208, 208, 208, 208};
-  unsigned char secondOps[] = {16, 80, 144, 208, 16, 80, 144, 208};
+  uint8_t firstOps[] = {80, 80, 80, 80, 208, 208, 208, 208};
+  uint8_t secondOps[] = {16, 80, 144, 208, 16, 80, 144, 208};
   bool carryRes[] = {false, false, false, true, false, true, true, true};
   bool overFlowRes[] = {false, true, false, false, false, false, true, false};
   clearFlags(nes);
@@ -44,8 +44,8 @@ void ADCTest(NES &nes) {
 }
 
 void SBCTest(NES &nes) {
-  unsigned char firstOps[] = {80, 80, 80, 80, 208, 208, 208, 208};
-  unsigned char secondOps[] = {240, 176, 112, 48, 240, 176, 112, 48};
+  uint8_t firstOps[] = {80, 80, 80, 80, 208, 208, 208, 208};
+  uint8_t secondOps[] = {240, 176, 112, 48, 240, 176, 112, 48};
   bool carryRes[] = {false, false, false, true, false, true, true, true};
   bool overFlowRes[] = {false, true, false, false, false, false, true, false};
   clearFlags(nes);
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
     cout << "JMP page boundary error" << endl;
   }
 
-  char push_test[] = {0, 1, 2, 3, 4};
+  uint8_t push_test[] = {0, 1, 2, 3, 4};
   for (int i = 0; i < 5; i++) {
     nes.cpu->push(push_test[i]);
   }

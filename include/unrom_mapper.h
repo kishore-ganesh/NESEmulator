@@ -4,10 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 class UNROM {
-  unsigned char PRG_ROM_Bank[8][16 * 1024];
-  unsigned char currentBank;
-  unsigned char permanentBank;
-  unsigned char CHR_RAM[8 * 1024];
+  uint8_t PRG_ROM_Bank[8][16 * 1024];
+  uint8_t currentBank;
+  uint8_t permanentBank;
+  uint8_t CHR_RAM[8 * 1024];
 
 public:
   UNROM(FILE *rom) {
@@ -17,11 +17,11 @@ public:
     currentBank = 0;
     permanentBank = 7;
   }
-  unsigned char readAddress(unsigned short address);
+  uint8_t readAddress(unsigned short address);
 
-  void writeAddress(unsigned short address, char value);
-  unsigned char readCHRAddress(unsigned short address);
-  void writeCHRAddress(unsigned short address, char value);
+  void writeAddress(unsigned short address, uint8_t value);
+  uint8_t readCHRAddress(unsigned short address);
+  void writeCHRAddress(unsigned short address, uint8_t value);
 };
 
 #endif

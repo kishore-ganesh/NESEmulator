@@ -1,10 +1,10 @@
 #include "memory.h"
-void processInstruction(unsigned char instruction, Memory *memory) {
-  char data = 0;
+void processInstruction(uint8_t instruction, Memory *memory) {
+  uint8_t data = 0;
   unsigned short address;
-  char aaa = (instruction & 0xE0) >> 5;
-  char bbb = (instruction & 0x1C) >> 2;
-  char cc = (instruction & 0x03);
+  uint8_t aaa = (instruction & 0xE0) >> 5;
+  uint8_t bbb = (instruction & 0x1C) >> 2;
+  uint8_t cc = (instruction & 0x03);
   /*
   Several instructions have patterns
       */
@@ -261,11 +261,11 @@ void processInstruction(unsigned char instruction, Memory *memory) {
     }
   }
 }
-int main(int argc, char *argv[]) {
+int main(int argc, uint8_t *argv[]) {
   Memory *memory = new Memory(argv[1]);
   short PC = memory->readLittleEndian(0xFFFC);
   while (true) {
-    unsigned char instruction = memory->readAddress(PC);
+    uint8_t instruction = memory->readAddress(PC);
     processInstruction(PC);
   }
 }

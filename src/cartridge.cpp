@@ -9,7 +9,7 @@ Cartridge::Cartridge(char *path) {
   spdlog::info("Cartridge type: {0:d}", type);
   switch (type) {
   case Mapper::NROM: {
-    PRG_ROM = new char[std::max(header.prgSize * 0x4000, 32768)];
+    PRG_ROM = new uint8_t[std::max(header.prgSize * 0x4000, 32768)];
     printHeader(header);
     if (header.flag[0] & 0x0004) {
       fseek(rom, 512, SEEK_CUR); // check this
@@ -47,7 +47,7 @@ void Cartridge::printHeader(iNES_Header header) {
          (header.flag[0] & 0x08) >> 3);
 }
 
-unsigned char Cartridge::readPRGAddress(unsigned short address) {
+uint8_t Cartridge::readPRGAddress(unsigned short address) {
   switch (type) {
   case Mapper::NROM: {
     return PRG_ROM[address];
@@ -60,7 +60,7 @@ unsigned char Cartridge::readPRGAddress(unsigned short address) {
   }
 }
 
-unsigned char Cartridge::readCHRAddress(unsigned short address) {
+uint8_t Cartridge::readCHRAddress(unsigned short address) {
   /* Have to add */
   switch (type) {
   case Mapper::NROM: {
@@ -74,7 +74,7 @@ unsigned char Cartridge::readCHRAddress(unsigned short address) {
   }
 }
 
-void Cartridge::writeCHRAddress(unsigned short address, unsigned char value) {
+void Cartridge::writeCHRAddress(unsigned short address, uint8_t value) {
   switch (type) {
   case Mapper::UNROM: {
     unrom->writeCHRAddress(address, value);
@@ -82,7 +82,7 @@ void Cartridge::writeCHRAddress(unsigned short address, unsigned char value) {
   }
 }
 
-void Cartridge::write(unsigned short address, char value) {
+void Cartridge::write(unsigned short address, uint8_t value) {
   switch (type) {
   case Mapper::NROM: {
     break;

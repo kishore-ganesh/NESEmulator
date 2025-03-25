@@ -23,7 +23,7 @@ public:
   unsigned short PC;
   bool IRQ, NMI;
   bool previousNMILevel;
-  NES(char *path);
+  NES(char* path);
   void cpuCycle();
   coro::task<void> ppuCycle();
   bool ppuCyclesLeft();

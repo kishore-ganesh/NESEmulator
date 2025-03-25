@@ -5,9 +5,9 @@ void Controller::capture() {
   const Uint8 *keys = SDL_GetKeyboardState(NULL);
   for (KEYMAP::iterator key = keyMap.begin(); key != keyMap.end(); key++) {
     if (keys[key->first]) {
-      // SPDLOG_INFO("KEY PRESSED: {0:d}", (unsigned char)key->second);
+      // SPDLOG_INFO("KEY PRESSED: {0:d}", (uint8_t)key->second);
       SPDLOG_INFO("Key pressed: {0:s}", debugMap[key->first]);
-      capturingStatus |= (unsigned char)key->second;
+      capturingStatus |= (uint8_t)key->second;
     }
   }
   SPDLOG_INFO("Capturing Status: {0:d}", capturingStatus);

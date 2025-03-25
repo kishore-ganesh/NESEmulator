@@ -21,7 +21,7 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display) {
   // std::cout << "FPS: " <<
   // 1000.0/std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()
   // << std::endl;
-  unsigned char srcPixels[256 * 240 * 3];
+  uint8_t srcPixels[256 * 240 * 3];
   int index = 0;
   for (int y = 0; y < 240; y++) {
     for (int x = 0; x < 256; x++) {

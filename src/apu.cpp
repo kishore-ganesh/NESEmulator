@@ -27,11 +27,11 @@ APU::APU() {
   sample = 0;
 }
 
-unsigned char APU::readRegister(unsigned short address) {
+uint8_t APU::readRegister(unsigned short address) {
   // spdlog::info("APU READ REGISTER: {0:x}", address);
   return 0;
 }
-void APU::writeRegister(unsigned short address, unsigned char value) {
+void APU::writeRegister(unsigned short address, uint8_t value) {
 
   if (address >= 0x4000 && address <= 0x4003) {
     // PULSE UNIT 1
@@ -55,7 +55,7 @@ void APU::writeRegister(unsigned short address, unsigned char value) {
   // spdlog::info("APU WRITE REGISTER: {0:x}, Value: {1:x}", address, value);
 }
 
-void APU::addCPUCycles(char cpuCycles) {
+void APU::addCPUCycles(uint8_t cpuCycles) {
   cyclesLeft += cpuCycles / 2;
   // cyclesLeft = 8192;
 }
@@ -208,7 +208,7 @@ void PulseGenerator::sweep() {
     currentSweepPeriod = sweepPeriod;
     if (sweepUnit & 0x80) {
       bool negate = (sweepUnit >> 3) & 0x01;
-      unsigned char shift = (sweepUnit) & 0x07;
+      uint8_t shift = (sweepUnit) & 0x07;
       unsigned short change = time >> shift;
       if (negate) {
         change = -change - 1;
@@ -223,7 +223,7 @@ void PulseGenerator::sweep() {
 }
 
 void PulseGenerator::writeRegister(unsigned short address,
-                                   unsigned char value) {
+                                   uint8_t value) {
   // spdlog::info("PULSE GENERATOR WRITE: {0:x}, value: {1:x}", address, value);
   switch (address) {
   case 0: {
@@ -304,7 +304,7 @@ unsigned short PulseGenerator::cycle() {
 }
 
 void TriangleGenerator::writeRegister(unsigned short address,
-                                      unsigned char value) {
+                                      uint8_t value) {
   // spdlog::info("Triangle write to {:x} value {:x}", address, value);
   switch (address) {
   case 0x0: {

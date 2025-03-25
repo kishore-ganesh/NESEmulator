@@ -22,52 +22,52 @@ enum Registers {
 };
 
 struct Sprite {
-  unsigned char y;
-  unsigned char tileIndex;
-  unsigned char attributes;
-  unsigned char x;
-  unsigned char index;
+  uint8_t y;
+  uint8_t tileIndex;
+  uint8_t attributes;
+  uint8_t x;
+  uint8_t index;
   void print() {
     SPDLOG_INFO("SPRITE at {0:d}, {1:d} with tileIndex {2:d}", x, y, tileIndex);
   }
 };
 
 struct SpritePPUInfo {
-  unsigned char upperPattern;
-  unsigned char lowerPattern;
-  unsigned char latch;
-  unsigned char xPosition;
+  uint8_t upperPattern;
+  uint8_t lowerPattern;
+  uint8_t latch;
+  uint8_t xPosition;
 };
 
 struct TileInfo {
-  unsigned char upperPattern;
-  unsigned char lowerPattern;
-  unsigned char attribute;
+  uint8_t upperPattern;
+  uint8_t lowerPattern;
+  uint8_t attribute;
   int y;
   int x;
   bool horizontalFlip;
   bool background;
-  unsigned char spriteIndex;
+  uint8_t spriteIndex;
   bool priority;
   int bgTileIndex;
 };
 class PPU {
   enum class Mirroring { HORIZONTAL, VERTICAL } mirroringMode;
   bool renderFlag;
-  unsigned char vram[2 * 1024];
-  unsigned char internalBuffer;
+  uint8_t vram[2 * 1024];
+  uint8_t internalBuffer;
   unsigned short baseAddress;
   bool addressLatch;
   bool inVblank;
-  char registers[8];
+  uint8_t registers[8];
   short scroll;
   unsigned short upperPattern, lowerPattern;
   bool bgTransparency[256][240];
   unsigned short attribute;
   unsigned short address;
-  unsigned char xscroll;
-  unsigned char yscroll;
-  unsigned char OAM[256];
+  uint8_t xscroll;
+  uint8_t yscroll;
+  uint8_t OAM[256];
   std::vector<Sprite> secondaryOAM;
   int cyclesLeft;
   int cyclesNeeded;
@@ -100,7 +100,7 @@ class PPU {
       {248, 216, 120}, {216, 248, 120}, {184, 248, 184}, {184, 248, 216},
       {0, 252, 252},   {248, 216, 248}, {0, 0, 0},       {0, 0, 0},
   };
-  char programPalletes[32];
+  uint8_t programPalletes[32];
 
   coro::event &ppuExecutionStopped;
   coro::event &ppuCyclesAvailable;
@@ -108,11 +108,11 @@ class PPU {
 public:
   PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
       coro::event &ppuCyclesAvailable);
-  unsigned char readAddress(unsigned short address, bool external);
-  void writeAddress(unsigned short address, char value);
-  unsigned char getRegister(Registers reg);
-  void setRegister(Registers reg, char value);
-  char getIncrement();
+  uint8_t readAddress(unsigned short address, bool external);
+  void writeAddress(unsigned short address, uint8_t value);
+  uint8_t getRegister(Registers reg);
+  void setRegister(Registers reg, uint8_t value);
+  uint8_t getIncrement();
   bool getSpriteMode();
   coro::task<void> consumeCycles(int cycles);
   void addCPUCycles(int cycles);
@@ -124,10 +124,10 @@ public:
   an operation, unlike get register, which just gets the register without doing
   anything PPU specific
    */
-  unsigned char readRegister(Registers reg);
-  void writeRegister(Registers reg, unsigned char value);
-  void writeOAM(unsigned char address, unsigned char value);
-  unsigned short getNameTableAddress(unsigned char nameTableNumber);
+  uint8_t readRegister(Registers reg);
+  void writeRegister(Registers reg, uint8_t value);
+  void writeOAM(uint8_t address, uint8_t value);
+  unsigned short getNameTableAddress(uint8_t nameTableNumber);
   short getBasePatternTableAddress(bool background);
   bool shouldInterrupt();
   void cycle();

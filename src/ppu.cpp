@@ -1,7 +1,7 @@
 #include "ppu.h"
 
-char getOffset(char r, char c) {
-  char sum = r + c;
+uint8_t getOffset(uint8_t r, uint8_t c) {
+  uint8_t sum = r + c;
   if (r == 1) {
     sum += 1;
   }
@@ -28,7 +28,7 @@ PPU::PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
   // memset(internalBuffer, 10240, 0);
 }
 
-unsigned char PPU::readAddress(unsigned short address, bool external) {
+uint8_t PPU::readAddress(unsigned short address, bool external) {
   // std::cout << address << std::endl;
   address = (address % 0x4000);
   if (address >= 0x0000 && address <= 0x1FFF) {
@@ -38,7 +38,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external) {
     } else {
 
       // SPDLOG_INFO("EXTERNAL CHR");
-      char value = internalBuffer;
+      uint8_t value = internalBuffer;
       internalBuffer = memory->readCHRAddress(address);
       return value;
       // return memory->readCHRAddress(address);
@@ -57,7 +57,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external) {
       if (!external) {
         return vram[baseAddress + offset];
       } else {
-        char value = internalBuffer;
+        uint8_t value = internalBuffer;
         internalBuffer = vram[baseAddress + offset];
         return value;
       }
@@ -78,7 +78,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external) {
       } else {
         // return vram[baseAddress + offset];
 
-        char value = internalBuffer;
+        uint8_t value = internalBuffer;
         internalBuffer = vram[baseAddress + offset];
         return value;
       }
@@ -124,7 +124,7 @@ unsigned char PPU::readAddress(unsigned short address, bool external) {
   }
 }
 
-void PPU::writeAddress(unsigned short address, char value) {
+void PPU::writeAddress(unsigned short address, uint8_t value) {
   address = (address % 0x4000);
   if (!inVblank) {
     SPDLOG_INFO("WRITING OUTSIDE OF VBLANK");
@@ -199,19 +199,19 @@ void PPU::writeAddress(unsigned short address, char value) {
   }
 }
 
-unsigned char PPU::getRegister(Registers reg) { return registers[reg]; }
+uint8_t PPU::getRegister(Registers reg) { return registers[reg]; }
 
-void PPU::setRegister(Registers reg, char value) { registers[reg] = value; }
+void PPU::setRegister(Registers reg, uint8_t value) { registers[reg] = value; }
 
-char PPU::getIncrement() {
+uint8_t PPU::getIncrement() {
   if (getRegister(PPUCTRL) & 0x04) {
     return 32;
   }
   return 1;
 }
 
-unsigned char PPU::readRegister(Registers reg) {
-  unsigned char value = getRegister(reg);
+uint8_t PPU::readRegister(Registers reg) {
+  uint8_t value = getRegister(reg);
   switch (reg) {
   case PPUSTATUS: {
     setRegister(reg, value & 0x7F);
@@ -230,8 +230,8 @@ unsigned char PPU::readRegister(Registers reg) {
   case PPUDATA: {
     SPDLOG_INFO("READING FROM PPU ADDRESS: {0:x}", address);
     value = readAddress(address, true);
-    char increment = getIncrement();
-    // unsigned char currentAddress = getRegister(PPUADDR);
+    uint8_t increment = getIncrement();
+    // uint8_t currentAddress = getRegister(PPUADDR);
     // setRegister(PPUADDR,currentAddress+increment);
     address += increment;
     break;
@@ -241,7 +241,7 @@ unsigned char PPU::readRegister(Registers reg) {
   return value;
 }
 
-void PPU::writeOAM(unsigned char address, unsigned char value) {
+void PPU::writeOAM(uint8_t address, uint8_t value) {
   // printf("OAM WRITING in %x VALUE: %d ", address, value);
   if (address > 255) {
     spdlog::error("OAM INVALID ADDRESS");
@@ -249,7 +249,7 @@ void PPU::writeOAM(unsigned char address, unsigned char value) {
   OAM[address] = value;
 }
 
-void PPU::writeRegister(Registers reg, unsigned char value) {
+void PPU::writeRegister(Registers reg, uint8_t value) {
   // Don't need to handle other cases, we're handling here
   SPDLOG_INFO("Register {0:d} set to {1:d}", (int)reg, value);
   if (!inVblank) {
@@ -259,7 +259,7 @@ void PPU::writeRegister(Registers reg, unsigned char value) {
     SPDLOG_INFO("Register PPUCTRL changed");
   }
   setRegister(reg, value);
-  unsigned char ppuStatus = getRegister(PPUSTATUS);
+  uint8_t ppuStatus = getRegister(PPUSTATUS);
   setRegister(PPUSTATUS, (ppuStatus & 0xE0) | (value & 0x1F));
   switch (reg) {
   case PPUCTRL: {
@@ -272,7 +272,7 @@ void PPU::writeRegister(Registers reg, unsigned char value) {
     break;
   }
   case OAMDATA: {
-    unsigned char address = getRegister(OAMADDR);
+    uint8_t address = getRegister(OAMADDR);
     SPDLOG_INFO("OAM ADDRESS: {0:d}", address);
     writeOAM(address, value);
     setRegister(OAMADDR, address + 1);
@@ -291,7 +291,7 @@ void PPU::writeRegister(Registers reg, unsigned char value) {
       addressLatch = false;
     }
     // addressLatch = !addressLatch;
-    // unsigned char existingScroll = (scroll&0xFF00) >> 8;
+    // uint8_t existingScroll = (scroll&0xFF00) >> 8;
     // scroll = existingScroll | (value << 8);
     // xscroll = existingScroll;
     // yscroll = value;
@@ -319,7 +319,7 @@ void PPU::writeRegister(Registers reg, unsigned char value) {
   case PPUDATA: {
     SPDLOG_INFO("WRITING TO PPU DATA: {0:x}", address);
     writeAddress(address, value);
-    char increment = getIncrement();
+    uint8_t increment = getIncrement();
     // setRegister(PPUADDR, address + increment);
     address += increment;
     break;
@@ -327,8 +327,8 @@ void PPU::writeRegister(Registers reg, unsigned char value) {
   }
 }
 
-unsigned short PPU::getNameTableAddress(unsigned char nameTableNumber) {
-  // char nameTableNumber = getRegister(PPUCTRL) & 0x03;
+unsigned short PPU::getNameTableAddress(uint8_t nameTableNumber) {
+  // uint8_t nameTableNumber = getRegister(PPUCTRL) & 0x03;
   short baseAddress = 0x2000;
   short address = baseAddress + ((nameTableNumber * 4) << 8);
   SPDLOG_INFO("NAMETABLE ADDRRESS: {0:x}", address);
@@ -339,7 +339,7 @@ unsigned short PPU::getNameTableAddress(unsigned char nameTableNumber) {
 }
 
 short PPU::getBasePatternTableAddress(bool background) {
-  char mask = 0x10;
+  uint8_t mask = 0x10;
   SPDLOG_INFO("PPU CTRL {0:x}", getRegister(PPUCTRL));
   if (!background) {
     mask = 0x08;
@@ -354,14 +354,14 @@ short PPU::getBasePatternTableAddress(bool background) {
 }
 
 bool PPU::shouldInterrupt() {
-  unsigned char value = getRegister(PPUCTRL);
+  uint8_t value = getRegister(PPUCTRL);
   return value & 0x80;
 }
 
 void PPU::addCPUCycles(int cycles) { cyclesLeft += (cycles * 3); }
 
 bool PPU::getSpriteMode() {
-  unsigned char regValue = getRegister(PPUCTRL);
+  uint8_t regValue = getRegister(PPUCTRL);
   return regValue & 0x20;
 }
 
@@ -384,7 +384,7 @@ void PPU::fetchTile(int tileNumber) {
   short nameTableOffset = tileNumber + (baseY / 8) * 32;
   // SPDLOG_INFO("NAMETABLE ADDRESS: {0:x}",
   // baseNameTableAddress+nameTableOffset);
-  unsigned char nameTableEntry =
+  uint8_t nameTableEntry =
       readAddress(baseNameTableAddress + nameTableOffset, false);
   short basePatternTableAddress = getBasePatternTableAddress(true);
   SPDLOG_INFO("Base pattern address: {0:x}", basePatternTableAddress);
@@ -400,13 +400,13 @@ void PPU::fetchTile(int tileNumber) {
   short yIndex = (baseY / 8) / 4;
   unsigned short attributeOffset = (yIndex * 8) + xIndex;
   unsigned short attributeAddress = baseAttributeTableAddress + attributeOffset;
-  unsigned char attributeEntry = readAddress(attributeAddress, false);
-  char r, c;
+  uint8_t attributeEntry = readAddress(attributeAddress, false);
+  uint8_t r, c;
   c = (tileNumber - xIndex * 4) / 2;
   r = (baseY / 8 - yIndex * 4) / 2;
 
   SPDLOG_INFO("ROWS: {0:d},  COLUMNS: {1:d}", r, c);
-  unsigned char offset = getOffset(r, c);
+  uint8_t offset = getOffset(r, c);
   attribute &= (0x00FF);
   attribute |= ((attributeEntry & (0x03 << (offset * 2))) >> (offset * 2))
                << 8; // check if this is correct for 2 tiles
@@ -426,7 +426,7 @@ void PPU::fetchTile(int tileNumber) {
 }
 
 TileInfo PPU::fetchSpriteTile(int oamIndex) {
-  char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+  uint8_t lineNo = currentScanline - secondaryOAM[oamIndex].y;
   // printf("")
 
   unsigned short baseSpritePatternAddress = getBasePatternTableAddress(false);
@@ -436,10 +436,10 @@ TileInfo PPU::fetchSpriteTile(int oamIndex) {
         (secondaryOAM[oamIndex].tileIndex & 0x01) ? 0x1000 : 0x0000;
   }
   // Modify for 8x16
-  unsigned char attribute = secondaryOAM[oamIndex].attributes & 0x03;
+  uint8_t attribute = secondaryOAM[oamIndex].attributes & 0x03;
   bool verticalFlip = secondaryOAM[oamIndex].attributes & 0x80;
   bool horizontalFlip = secondaryOAM[oamIndex].attributes & 0x40;
-  // char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+  // uint8_t lineNo = currentScanline - secondaryOAM[oamIndex].y;
 
   // spdlog::info("LINENO: %d, CURRS: %d", lineNo, currentScanline%8);
   if (verticalFlip) {
@@ -451,8 +451,8 @@ TileInfo PPU::fetchSpriteTile(int oamIndex) {
   unsigned short patternAddress = baseSpritePatternAddress +
                                   (secondaryOAM[oamIndex].tileIndex * 16) +
                                   (lineNo / 8) * 16 + (lineNo % 8);
-  unsigned char upperTile = readAddress(patternAddress, false);
-  unsigned char lowerTile = readAddress(patternAddress + 8, false);
+  uint8_t upperTile = readAddress(patternAddress, false);
+  uint8_t lowerTile = readAddress(patternAddress + 8, false);
   struct TileInfo tileInfo = {
       upperTile,
       lowerTile,
@@ -486,10 +486,10 @@ void PPU::renderTile(TileInfo tileInfo) {
       isTransparent = true;
     }
     // SPDLOG_INFO("PALLETE ADDRESS: {0:x}", palleteAddress);
-    char palleteIndex = readAddress(palleteAddress, false);
+    uint8_t palleteIndex = readAddress(palleteAddress, false);
     // Need to evaluate priority here
     unsigned short x = tileInfo.x + patternBit;
-    // unsigned char y = secondaryOAM[oamIndex].y;
+    // uint8_t y = secondaryOAM[oamIndex].y;
     if (tileInfo.horizontalFlip) {
       x = tileInfo.x + 7 - (patternBit);
     }
@@ -498,7 +498,7 @@ void PPU::renderTile(TileInfo tileInfo) {
       // SPDLOG_INFO("Background is: {}")
       SPDLOG_INFO("SPRITE ZERO HIT at x: {0:d}, scanline: {1:d}", x,
                   currentScanline);
-      unsigned char ppuStatus = getRegister(PPUSTATUS);
+      uint8_t ppuStatus = getRegister(PPUSTATUS);
       setRegister(PPUSTATUS, ppuStatus | 0x40);
     }
 
@@ -549,7 +549,7 @@ coro::task<void> PPU::generateFrame() {
   co_await consumeCycles(1);
   if (currentScanline == -1) {
     clearTransparency();
-    unsigned char ppuStatus = getRegister(PPUSTATUS);
+    uint8_t ppuStatus = getRegister(PPUSTATUS);
     SPDLOG_INFO("Sprite zero cleared");
     setRegister(PPUSTATUS, ppuStatus & ~(0x40));
   }
@@ -562,7 +562,7 @@ coro::task<void> PPU::generateFrame() {
     // Should be absolute distance
     SPDLOG_INFO("SPRITE OAM: {0:d} {1:d} {2:d}", OAM[oamIndex + 3],
                 OAM[oamIndex], currentScanline);
-    char maxHeight = getSpriteMode() ? 16 : 8;
+    uint8_t maxHeight = getSpriteMode() ? 16 : 8;
     int difference = currentScanline - OAM[oamIndex] - 1;
     if (difference < maxHeight && difference >= 0 && secondaryOAM.size() < 8) {
       // Add size check
@@ -577,9 +577,9 @@ coro::task<void> PPU::generateFrame() {
     // Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
     for (int i = 0; i < 32; i++) {
       co_await consumeCycles(8);
-      unsigned char upperTile = upperPattern & 0x00FF;
-      unsigned char lowerTile = lowerPattern & 0x00FF;
-      unsigned char tileAttribute = attribute & 0x00FF;
+      uint8_t upperTile = upperPattern & 0x00FF;
+      uint8_t lowerTile = lowerPattern & 0x00FF;
+      uint8_t tileAttribute = attribute & 0x00FF;
       // spdlog::info("Tile attribute is: {0:d}", tileAttribute);
 
       struct TileInfo tileInfo = {
@@ -589,8 +589,8 @@ coro::task<void> PPU::generateFrame() {
       renderTile(tileInfo);
 
       for (int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++) {
-        char lineNo = currentScanline - secondaryOAM[oamIndex].y;
-        char maxLines = getSpriteMode() ? 15 : 7;
+        uint8_t lineNo = currentScanline - secondaryOAM[oamIndex].y;
+        uint8_t maxLines = getSpriteMode() ? 15 : 7;
         if (secondaryOAM[oamIndex].y > currentScanline || lineNo > maxLines ||
             secondaryOAM[oamIndex].x > (7 + i * 8)) {
           continue;
@@ -623,7 +623,7 @@ coro::task<void> PPU::generateFrame() {
   } else {
     if (currentScanline >= 240) {
       if (currentScanline == 241) {
-        unsigned char status = getRegister(PPUSTATUS);
+        uint8_t status = getRegister(PPUSTATUS);
         inVblank = true;
         setRegister(PPUSTATUS, status | 0x80);
         SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}",
@@ -649,7 +649,7 @@ coro::task<void> PPU::generateFrame() {
   SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
   if (currentScanline == 261) {
     currentScanline = -1;
-    unsigned char status = getRegister(PPUSTATUS);
+    uint8_t status = getRegister(PPUSTATUS);
     setRegister(PPUSTATUS, status & 0x7F);
     inVblank = false;
   }

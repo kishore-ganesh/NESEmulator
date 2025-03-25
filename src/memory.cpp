@@ -2,7 +2,7 @@
 using std::cout;
 using std::endl;
 
-Memory::Memory(char *path, Controller *controller, APU *apu) {
+Memory::Memory(char* path, Controller *controller, APU *apu) {
   cartridge = new Cartridge(path);
   memset(memory, 2 * 1024, 0);
   // this->ppu = ppu;
@@ -14,7 +14,7 @@ void Memory::setPPU(PPU *ppu) {
   this->ppu = ppu;
   ppu->setMirroringMode(cartridge->getMirroringMode());
 }
-unsigned char Memory::readAddress(unsigned short address) {
+uint8_t Memory::readAddress(unsigned short address) {
   if (address <= 0x1FFF) {
     return memory[address % (0x0800)];
   }
@@ -49,14 +49,14 @@ unsigned char Memory::readAddress(unsigned short address) {
   }
 }
 
-unsigned char Memory::readCHRAddress(unsigned short address) {
+uint8_t Memory::readCHRAddress(unsigned short address) {
   return cartridge->readCHRAddress(address);
 }
 
-void Memory::writeCHRAddress(unsigned short address, char value) {
+void Memory::writeCHRAddress(unsigned short address, uint8_t value) {
   cartridge->writeCHRAddress(address, value);
 }
-void Memory::writeAddress(unsigned short address, char value) {
+void Memory::writeAddress(unsigned short address, uint8_t value) {
   SPDLOG_INFO("Writing to: {0:x} value: {1:x}", address, value);
   if (address == 0x2000) {
     // spdlog::info("Writing to PPUCTRL: {0:x}\n", value);
@@ -96,16 +96,16 @@ void Memory::writeAddress(unsigned short address, char value) {
 
 short Memory::readLittleEndian(unsigned short address) {
   short data = 0;
-  data = (unsigned char)readAddress(address + 1);
+  data = (uint8_t)readAddress(address + 1);
   data = (data) << 8;
-  data = data | (unsigned char)readAddress(address); // sign bit extended here
+  data = data | (uint8_t)readAddress(address); // sign bit extended here
   return data;
 }
 
-void Memory::OAMDMA(unsigned char highByte) {
+void Memory::OAMDMA(uint8_t highByte) {
   for (unsigned short i = 0x00; i <= (unsigned short)0xFF; i++) {
     // printf("OAM WRITING FROM: %x\n", (highByte<<8)|i);
-    char data = readAddress((highByte << 8) |
+    uint8_t data = readAddress((highByte << 8) |
                             i); // Check that OAM DMA increases OAM Addresses
     writeAddress(0x2004, data);
   }

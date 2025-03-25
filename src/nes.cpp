@@ -9,7 +9,7 @@
 #include "nes.h"
 #include <thread>
 
-NES::NES(char *path) {
+NES::NES(char* path) {
   // add CPU code
   controller = new Controller();
   apu = new APU();

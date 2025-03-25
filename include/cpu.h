@@ -5,8 +5,8 @@
 
 class CPU {
 public:
-  unsigned char A, X, Y, P; // check check setting of stack pointer
-  unsigned char SP;
+  uint8_t A, X, Y, P; // check check setting of stack pointer
+  uint8_t SP;
   int cycles;
   int cyclesLeft;
   Memory *memory;
@@ -29,25 +29,25 @@ public:
   EdgeInterrupt *getNMIPointer();
   void setTime(unsigned int delta);
   bool hasCPUCycles();
-  unsigned char readAddress(unsigned short address);
-  void writeAddress(unsigned short address, char value);
+  uint8_t readAddress(unsigned short address);
+  void writeAddress(unsigned short address, uint8_t value);
   short readLittleEndian(unsigned short address);
   bool captureInput();
   bool stopCapture();
-  void setFlag(char mask, bool bit);
-  bool getFlag(char mask);
-  void checkValueFlags(char value);
+  void setFlag(uint8_t mask, bool bit);
+  bool getFlag(uint8_t mask);
+  void checkValueFlags(uint8_t value);
   void printStatus();
   void readImmediate(unsigned short &PC, unsigned short &address);
   void readZeroPage(unsigned short &PC, unsigned short &address);
   void readAbsolute(unsigned short &PC, unsigned short &address);
   void readZeroPageX(unsigned short &PC, unsigned short &address,
-                     unsigned char X);
+                     uint8_t X);
   void readAbsoluteX(unsigned short &PC, unsigned short &address,
-                     unsigned char X);
-  void processInstruction(unsigned char instruction);
+                     uint8_t X);
+  void processInstruction(uint8_t instruction);
   int cycle();
-  void OAMDMA(char data);
+  void OAMDMA(uint8_t data);
   void ORA(unsigned short address);
   void AND(unsigned short address);
   void EOR(unsigned short address);
@@ -72,9 +72,9 @@ public:
   void CPY(unsigned short address);
   void CPX(unsigned short address);
   void BRANCH(masks flag, bool bit);
-  void push(char data);
+  void push(uint8_t data);
   void pushLittleEndian(short data);
-  char pop();
+  uint8_t pop();
   short popLittleEndian();
   void BRK();
   void JSR();

@@ -26,16 +26,16 @@ bool CPU::stopCapture() {
   stopCaptureInput = 0;
   return shouldStop;
 }
-void CPU::setFlag(char mask, bool bit) {
+void CPU::setFlag(uint8_t mask, bool bit) {
   P &= ~mask;
   if (bit) {
     P |= mask;
   }
 }
 
-bool CPU::getFlag(char mask) { return ((P & mask) != 0); }
+bool CPU::getFlag(uint8_t mask) { return ((P & mask) != 0); }
 
-void CPU::checkValueFlags(char value) {
+void CPU::checkValueFlags(uint8_t value) {
   bool negBit, zeroBit;
   negBit = value < 0 ? 1 : 0;
   zeroBit = value == 0 ? 1 : 0;
@@ -53,7 +53,7 @@ void CPU::printStatus() {
               getFlag(INTEGER_OVERFLOW), getFlag(INT));
 }
 
-unsigned char CPU::readAddress(unsigned short address) {
+uint8_t CPU::readAddress(unsigned short address) {
   cycles++;
   return memory->readAddress(address);
 }
@@ -61,7 +61,7 @@ short CPU::readLittleEndian(unsigned short address) {
   cycles += 2;
   return memory->readLittleEndian(address);
 }
-void CPU::writeAddress(unsigned short address, char value) {
+void CPU::writeAddress(unsigned short address, uint8_t value) {
   cycles++;
   if (address == 0x4014) {
     cycles += 512;
@@ -98,7 +98,7 @@ void CPU::readAbsolute(unsigned short &PC, unsigned short &address) {
 
 /* ZERO PAGE, X: X provided since in two instructions the X changes to Y */
 void CPU::readZeroPageX(unsigned short &PC, unsigned short &address,
-                        unsigned char X) {
+                        uint8_t X) {
   SPDLOG_INFO("ZEROPAGE X");
   PC = PC + 1;
   address = (readAddress(PC) + X) & 0x00FF;
@@ -106,18 +106,18 @@ void CPU::readZeroPageX(unsigned short &PC, unsigned short &address,
 }
 
 void CPU::readAbsoluteX(unsigned short &PC, unsigned short &address,
-                        unsigned char X) {
+                        uint8_t X) {
   SPDLOG_INFO("ABSOLUTE X ");
   PC = PC + 1;
   address = readLittleEndian(PC) + X;
   PC = PC + 1;
 }
-void CPU::processInstruction(unsigned char instruction) {
+void CPU::processInstruction(uint8_t instruction) {
 
   unsigned short address;
-  char aaa = (instruction & 0xE0) >> 5;
-  char bbb = (instruction & 0x1C) >> 2;
-  char cc = (instruction & 0x03);
+  uint8_t aaa = (instruction & 0xE0) >> 5;
+  uint8_t bbb = (instruction & 0x1C) >> 2;
+  uint8_t cc = (instruction & 0x03);
   /*
   Several instructions have patterns
       */
@@ -405,57 +405,57 @@ int CPU::cycle() {
     address = readLittleEndian(0xFFFE);
     PC = address;
   }
-  char instruction = readAddress(PC);
+  uint8_t instruction = readAddress(PC);
   processInstruction(instruction);
   PC = PC + 1;          // check for jump
   cyclesLeft -= cycles; // May become negative once
   return cycles;
 }
 void CPU::ORA(unsigned short address) {
-  char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("ORA with data: {0:x} from address: {1:x}", data, address);
   A |= data;
   checkValueFlags(A);
 }
 
 void CPU::AND(unsigned short address) {
-  char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("AND with data: {0:x} from address: {1:x}", data, address);
   A &= data;
   checkValueFlags(A);
 }
 void CPU::EOR(unsigned short address) {
-  char data = readAddress(address);
+  uint8_t data = readAddress(address);
   // SPDLOG_INFO("EOR with {0:d}", data);
   SPDLOG_INFO("EOR with data: {0:x} from address: {1:x}", data, address);
   A ^= data;
   checkValueFlags(A);
 }
 void CPU::ADC(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("ADC with data: {0:x} from address: {1:x}", data, address);
   short result = A + data + getFlag(CARRY);
   bool carryBit = result > 0xFF ? 1 : 0;
-  char charResult = A + (char)data + getFlag(CARRY);
-  bool overFlowBit = ((char)A > 0 && (char)data > 0 && charResult < 0) ||
-                     ((char)A < 0 && (char)data < 0 && charResult > 0);
-  A = A + (char)data + getFlag(CARRY);
+  uint8_t uint8_tResult = A + (uint8_t)data + getFlag(CARRY);
+  bool overFlowBit = ((uint8_t)A > 0 && (uint8_t)data > 0 && uint8_tResult < 0) ||
+                     ((uint8_t)A < 0 && (uint8_t)data < 0 && uint8_tResult > 0);
+  A = A + (uint8_t)data + getFlag(CARRY);
   SPDLOG_INFO("A is now: {0:d}", A);
   checkValueFlags(A);
   setFlag(CARRY, carryBit);
   setFlag(INTEGER_OVERFLOW, overFlowBit); // fix this and have carry
 }
 void CPU::SBC(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("SBC with data: {0:x} from address: {1:x}", data, address);
   short result = A - data - !getFlag(CARRY);
-  char charResult = A - (char)data - !getFlag(CARRY);
-  bool overFlowBit = ((char)A > 0 && (char)data < 0 && charResult < 0) ||
-                     ((char)A < 0 && (char)data > 0 && charResult > 0);
+  uint8_t uint8_tResult = A - (uint8_t)data - !getFlag(CARRY);
+  bool overFlowBit = ((uint8_t)A > 0 && (uint8_t)data < 0 && uint8_tResult < 0) ||
+                     ((uint8_t)A < 0 && (uint8_t)data > 0 && uint8_tResult > 0);
   SPDLOG_INFO("{0:d}", data);
   // bool borrowBit = A > data ? 0;
   // Short won't show overflow
-  unsigned char cmpData = data + !getFlag(CARRY);
+  uint8_t cmpData = data + !getFlag(CARRY);
   if (A < cmpData) {
     setFlag(CARRY, 0);
   } else {
@@ -471,13 +471,13 @@ void CPU::STA(unsigned short address) {
   writeAddress(address, A); // check this
 }
 void CPU::LDA(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("LDA from {0:x} value: {1:x}", address, data);
   A = data; // check if flag is to be set here
   checkValueFlags(A);
 }
 void CPU::CMP(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("CMP A: {0:d} & Data: {1:d}", A, data);
   bool borrowBit = A >= data ? 1 : 0;
   setFlag(CARRY, borrowBit);
@@ -492,7 +492,7 @@ void CPU::ASL(unsigned short address, bool accumulator) {
     A = A << 1;
     checkValueFlags(A);
   } else {
-    unsigned char data = readAddress(address);
+    uint8_t data = readAddress(address);
     carryBit = (data & 0x80) >> 7;
     writeAddress(address, data << 1);
     checkValueFlags(data << 1);
@@ -510,7 +510,7 @@ void CPU::ROL(unsigned short address, bool accumulator) {
     A |= zeroBit ? 0x01 : 0;
     checkValueFlags(A);
   } else {
-    unsigned char data = readAddress(address);
+    uint8_t data = readAddress(address);
     carryBit = (data & 0x8F) >> 7;
     data = data << 1;
     data &= 0xFE;
@@ -525,12 +525,12 @@ void CPU::LSR(unsigned short address, bool accumulator) {
   bool nextCarryBit = 0;
   if (accumulator) {
     nextCarryBit = A & 0x01;
-    A = (unsigned char)A >> 1;
+    A = (uint8_t)A >> 1;
     checkValueFlags(A);
   } else {
-    unsigned char data = readAddress(address);
+    uint8_t data = readAddress(address);
     nextCarryBit = data & 0x01;
-    data = (unsigned char)data >> 1;
+    data = (uint8_t)data >> 1;
     writeAddress(address, data);
     checkValueFlags(data);
   }
@@ -547,7 +547,7 @@ void CPU::ROR(unsigned short address, bool accumulator) {
     A |= previousCarryBit ? 0x80 : 0;
     checkValueFlags(A);
   } else {
-    unsigned char data = readAddress(address);
+    uint8_t data = readAddress(address);
     nextCarryBit = data & 0x01;
     data = data >> 1;
     data &= 0x7F;
@@ -564,19 +564,19 @@ void CPU::STX(unsigned short address, bool accumulator) {
 }
 
 void CPU::LDX(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("LDX from address: {0:x} with value: {1:x}", address, data);
   X = data; // check if flag to be set here
   checkValueFlags(X);
 }
 void CPU::DEC(unsigned short address, bool accumulator) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   writeAddress(address, data - 1);
   checkValueFlags(data - 1);
   SPDLOG_INFO("DEC address: {0:x} with data {1:x}", address, data);
 }
 void CPU::INC(unsigned short address, bool accumulator) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   writeAddress(address, data + 1);
   checkValueFlags(data + 1);
   SPDLOG_INFO("INC address: {0:x} with data {1:x}", address, data);
@@ -588,7 +588,7 @@ void CPU::BIT(unsigned short address) {
   if (address == PC) {
     SPDLOG_INFO("BIT IMMEDIATE");
   }
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   bool zeroBit, overflowBit, negativeBit;
   zeroBit = data & A == 0 ? 1 : 0;
   negativeBit = data & 0x80;
@@ -626,14 +626,14 @@ void CPU::STY(unsigned short address) {
 }
 
 void CPU::LDY(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("LDY from: {0:x} with data: {1:x}", address, data);
   Y = data;
   checkValueFlags(data);
 }
 
 void CPU::CPY(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("CPY with data: {0:x} from address: {1:x}", data, address);
   bool borrowBit = Y >= data ? 1 : 0;
   bool zeroBit = false;
@@ -644,7 +644,7 @@ void CPU::CPY(unsigned short address) {
   checkValueFlags(Y - data);
 }
 void CPU::CPX(unsigned short address) {
-  unsigned char data = readAddress(address);
+  uint8_t data = readAddress(address);
   SPDLOG_INFO("CPX with data: {0:x} from address: {1:x}", data, address);
   bool borrowBit = X >= data ? 1 : 0;
   setFlag(CARRY, borrowBit);
@@ -653,15 +653,15 @@ void CPU::CPX(unsigned short address) {
 
 void CPU::BRANCH(masks flag, bool bit) {
   PC = PC + 1;
-  char data = readAddress(PC);
+  uint8_t data = readAddress(PC);
   // SPDLOG_INFO("BRANCH");
   if (getFlag(flag) == bit) {
     PC = PC + data; // chedck this
   }
 }
-void CPU::push(char data) {
-  unsigned char highByte = 0x01;
-  short stackAddress = (highByte << 8) | (unsigned char)SP;
+void CPU::push(uint8_t data) {
+  uint8_t highByte = 0x01;
+  short stackAddress = (highByte << 8) | (uint8_t)SP;
   writeAddress(stackAddress, data);
   SP = SP - 1;
 
@@ -669,24 +669,24 @@ void CPU::push(char data) {
 }
 
 void CPU::pushLittleEndian(short data) {
-  char highByte = (data >> 8);
-  char lowByte = (data & 0x00FF);
+  uint8_t highByte = (data >> 8);
+  uint8_t lowByte = (data & 0x00FF);
   push(highByte);
   push(lowByte);
 }
 
-char CPU::pop() {
-  unsigned char highByte = 0x01;
+uint8_t CPU::pop() {
+  uint8_t highByte = 0x01;
   SP = SP + 1;
-  short stackAddress = (highByte << 8) | (unsigned char)SP;
-  char data = readAddress(stackAddress);
+  short stackAddress = (highByte << 8) | (uint8_t)SP;
+  uint8_t data = readAddress(stackAddress);
   SPDLOG_INFO("Popping: {0:x}", data);
   return data;
 }
 
 short CPU::popLittleEndian() {
-  short result = (unsigned char)pop();
-  result = (((unsigned char)pop()) << 8) | result;
+  short result = (uint8_t)pop();
+  result = (((uint8_t)pop()) << 8) | result;
   return result;
 }
 

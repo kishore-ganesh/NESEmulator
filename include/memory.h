@@ -11,21 +11,21 @@ Class for common memory bus operations ( this is shared between CPU, PPU and
 APU)
  */
 class Memory {
-  char memory[2 * 1024];
+  uint8_t memory[2 * 1024];
   PPU *ppu;
   Cartridge *cartridge;
   Controller *controller;
   APU *apu;
 
 public:
-  Memory(char *path, Controller *controller, APU *apu);
+  Memory(char* path, Controller *controller, APU *apu);
   void setPPU(PPU *ppu);
-  unsigned char readAddress(unsigned short address);
-  unsigned char readCHRAddress(unsigned short address);
-  void writeCHRAddress(unsigned short addres, char value);
-  void writeAddress(unsigned short address, char value);
+  uint8_t readAddress(unsigned short address);
+  uint8_t readCHRAddress(unsigned short address);
+  void writeCHRAddress(unsigned short addres, uint8_t value);
+  void writeAddress(unsigned short address, uint8_t value);
   short readLittleEndian(unsigned short address);
-  void OAMDMA(unsigned char data);
+  void OAMDMA(uint8_t data);
 };
 
 #endif
