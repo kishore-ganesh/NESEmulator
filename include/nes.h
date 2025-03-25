@@ -25,7 +25,7 @@ public:
   bool previousNMILevel;
   NES(char *path);
   void cpuCycle();
-  void ppuCycle();
+  coro::task<void> ppuCycle();
   bool ppuCyclesLeft();
   bool apuCyclesLeft();
   void apuCycle();
@@ -33,5 +33,22 @@ public:
   void setTime(unsigned int delta);
   bool hasCPUCycles();
   std::vector<std::vector<RGB>> getFrame();
+
+  bool ppuCanExecute() { return ppu->canExecute(); }
+  void resumePpuIfPossible() {
+    if (ppu->canExecute()) {
+      ppuCyclesAvailable.set();
+    }
+  }
+
+  coro::task<void> waitForPpuExecution() {
+    co_await ppuExecutionStopped;
+    // TODO: is this necessary
+    ppuExecutionStopped.reset();
+  }
+
+private:
+  coro::event ppuExecutionStopped;
+  coro::event ppuCyclesAvailable;
 };
 #endif

@@ -1,0 +1,3 @@
+[submodule "third_party/libcoro"]
+	path = third_party/libcoro
+	url = git@github.com:jbaldwin/libcoro.git

@@ -55,41 +55,42 @@ void SDLHandler::displayFrame(std::vector<std::vector<RGB>> display) {
   // SDL_RenderPresent(renderer);
 }
 
-void SDLHandler::begin() {
-  // spdlog::info("NES: {0:p}", (void*)nes->apu);
+coro::task<void> SDLHandler::cpuLoop() {
   while (!shouldQuit) {
     nes->setTime(ticksInFrame);
-    ticksInFrame = std::min((unsigned int)18, SDL_GetTicks() - frameStartTicks);
-    // spdlog::info("CPU has cycles: {:b}", nes->hasCPUCycles());
+    ticksInFrame = std::min(
+        (unsigned int)18,
+        SDL_GetTicks() - frameStartTicks); // TODO: fix this, frame calculation
+                                           // seems problematic
+
     while (nes->hasCPUCycles()) {
-      // spdlog::info("CYCLE");
-      nes->cpuCycle(); // Refactor into nes->CPucycle and nes->ppucycle so that
-                       // we can get ppu to run as long
-      // nes->cycle();
-      // if(nes->shouldRender()){
-      //     displayFrame(nes->getFrame());
-      // }
-      // nes->apu->writeRegister(0, 0);
-      // nes->apu->cycle();
+      if (nes->ppuCanExecute()) {
+        co_await nes->waitForPpuExecution();
+      }
+
+      nes->cpuCycle();
       while (nes->apuCyclesLeft()) {
         // spdlog::info("IN APU CYCLE");
         nes->apuCycle();
       }
-      while (nes->ppuCyclesLeft()) {
-        SPDLOG_INFO("IN PPU CYCLE");
-        nes->ppuCycle();
-        if (nes->shouldRender()) {
-          // spdlog::info("SHOULD RENDER");
-          handleEvent();
-          displayFrame(nes->getFrame());
-          // if(ticksInFrame < 1000/60.0){
-          //     SDL_Delay(1000/60.0 - ticksInFrame);
-          //
-          // SDL_Delay(16);
-        }
+
+      nes->resumePpuIfPossible();
+      if (nes->shouldRender()) {
+        handleEvent();
+        displayFrame(nes->getFrame());
       }
 
       frameStartTicks = SDL_GetTicks();
     }
   }
+}
+
+coro::task<void> SDLHandler::ppuLoop() {
+  while (!shouldQuit) {
+    co_await nes->ppuCycle();
+  }
+}
+
+void SDLHandler::begin() {
+  coro::sync_wait(coro::when_all(cpuLoop(), ppuLoop()));
 }

@@ -31,4 +31,7 @@ public:
   void handleEvent();
   void displayFrame(std::vector<std::vector<RGB>>);
   void begin();
+
+  coro::task<void> cpuLoop();
+  coro::task<void> ppuLoop();
 };

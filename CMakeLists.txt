@@ -1,25 +1,29 @@
 cmake_minimum_required(VERSION 3.15)
+set (CMAKE_CXX_STANDARD 20)
 include_directories(include)
 project("NES Emulator")
 find_package(SDL2 REQUIRED)
 find_package(spdlog REQUIRED)
+
+add_subdirectory(third_party/libcoro)
+
 include_directories(${SDL2_INCLUDE_DIRS})
 set(SOURCES src/ppu.cpp src/nes.cpp src/cpu.cpp src/memory.cpp src/cartridge.cpp
     src/sdl_handler.cpp src/interrupt.cpp src/controller.cpp
     src/unrom_mapper.cpp src/apu.cpp)
 add_executable(nes ${SOURCES} src/main.cpp)
 string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
-target_link_libraries(nes ${SDL2_LIBRARIES} spdlog::spdlog)
+target_link_libraries(nes ${SDL2_LIBRARIES} spdlog::spdlog libcoro)
 target_compile_definitions(nes PUBLIC SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO)
 target_compile_options(nes PRIVATE -Wall)
 
 add_executable(test ${SOURCES} src/tests.cpp)
-target_link_libraries(test ${SDL2_LIBRARIES} spdlog::spdlog)
+target_link_libraries(test ${SDL2_LIBRARIES} spdlog::spdlog libcoro)
 target_compile_definitions(test PUBLIC SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO)
 target_compile_options(test PRIVATE -Wall)
 #message(STATUS "CPPFLAGS" ${CMAKE_CPP_FLAGS})
 
 add_executable(nes_release ${SOURCES} src/main.cpp)
-target_link_libraries(nes_release ${SDL2_LIBRARIES} spdlog::spdlog)
+target_link_libraries(nes_release ${SDL2_LIBRARIES} spdlog::spdlog libcoro)
 target_compile_definitions(nes_release PUBLIC SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_WARN)
 target_compile_options(nes_release PRIVATE -Wall)

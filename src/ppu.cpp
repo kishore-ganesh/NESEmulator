@@ -7,12 +7,12 @@ char getOffset(char r, char c) {
   }
   return sum;
 }
-PPU::PPU(Memory *memory, EdgeInterrupt *NMI) {
-  this->memory = memory;
-  this->NMI = NMI;
+PPU::PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
+         coro::event &ppuCyclesAvailable)
+    : memory(memory), NMI(NMI), ppuExecutionStopped(ppuExecutionStopped),
+      ppuCyclesAvailable(ppuCyclesAvailable) {
   this->cyclesLeft = 0;
   this->cyclesNeeded = 0;
-  this->currentCycle = 0;
   this->currentScanline = -1;
   this->xscroll = 0;
   this->yscroll = 0;
@@ -358,12 +358,6 @@ bool PPU::shouldInterrupt() {
   return value & 0x80;
 }
 
-void PPU::addCycles(int cycles) {
-  // Throw an exception
-  currentCycle += cycles;
-  cyclesLeft -= cycles;
-}
-
 void PPU::addCPUCycles(int cycles) { cyclesLeft += (cycles * 3); }
 
 bool PPU::getSpriteMode() {
@@ -459,15 +453,16 @@ TileInfo PPU::fetchSpriteTile(int oamIndex) {
                                   (lineNo / 8) * 16 + (lineNo % 8);
   unsigned char upperTile = readAddress(patternAddress, false);
   unsigned char lowerTile = readAddress(patternAddress + 8, false);
-  struct TileInfo tileInfo = {upperTile,
-                              lowerTile,
-                              attribute,
-                              currentScanline,
-                              secondaryOAM[oamIndex].x,
-                              horizontalFlip,
-                              false,
-                              secondaryOAM[oamIndex].index,
-                              secondaryOAM[oamIndex].attributes & 0x20};
+  struct TileInfo tileInfo = {
+      upperTile,
+      lowerTile,
+      attribute,
+      currentScanline,
+      secondaryOAM[oamIndex].x,
+      horizontalFlip,
+      false,
+      secondaryOAM[oamIndex].index,
+      static_cast<bool>(secondaryOAM[oamIndex].attributes & 0x20)};
   return tileInfo;
 }
 void PPU::renderTile(TileInfo tileInfo) {
@@ -531,10 +526,19 @@ void PPU::renderTile(TileInfo tileInfo) {
   }
 }
 
-void PPU::generateFrame(int cycles) {
-  cyclesLeft += cycles;
-  SPDLOG_INFO("CURRENT CYCLE: {0:d}, CYCLES LEFT: {1:d}", currentCycle,
-              cyclesLeft);
+coro::task<void> PPU::consumeCycles(int cycles) {
+  if (cycles > cyclesLeft) {
+    cyclesNeeded = cycles;
+    ppuExecutionStopped.set();
+    co_await ppuCyclesAvailable;
+    ppuCyclesAvailable.reset();
+  }
+  cyclesNeeded = 0;
+  cyclesLeft -= cycles;
+}
+
+coro::task<void> PPU::generateFrame() {
+  SPDLOG_INFO("CYCLES LEFT: {1:d}", cyclesLeft);
   int regValue = getRegister(PPUCTRL);
   SPDLOG_INFO("SPRITE MODE: {0}", (regValue & 0x20) ? "8x16" : "8x8");
   SPDLOG_INFO("SECONDARY OAM SIZE: {0:d}", secondaryOAM.size());
@@ -542,22 +546,14 @@ void PPU::generateFrame(int cycles) {
               "Nametable Address: {2:x}",
               currentScanline, xscroll, baseAddress);
   SPDLOG_INFO("Sprite zero hit: {0:b}", getRegister(PPUSTATUS) & 0x40);
-  if (currentCycle == 0) {
-    if (cyclesLeft >= 1) {
-      if (currentScanline == -1) {
-        clearTransparency();
-        unsigned char ppuStatus = getRegister(PPUSTATUS);
-        SPDLOG_INFO("Sprite zero cleared");
-        setRegister(PPUSTATUS, ppuStatus & ~(0x40));
-      }
-      addCycles(1);
-      renderFlag = false;
-    } else {
-      cyclesNeeded = 1;
-      return;
-    }
+  co_await consumeCycles(1);
+  if (currentScanline == -1) {
+    clearTransparency();
+    unsigned char ppuStatus = getRegister(PPUSTATUS);
+    SPDLOG_INFO("Sprite zero cleared");
+    setRegister(PPUSTATUS, ppuStatus & ~(0x40));
   }
-
+  renderFlag = false;
   secondaryOAM.clear();
 
   // Place it in the right place
@@ -570,152 +566,109 @@ void PPU::generateFrame(int cycles) {
     int difference = currentScanline - OAM[oamIndex] - 1;
     if (difference < maxHeight && difference >= 0 && secondaryOAM.size() < 8) {
       // Add size check
-      secondaryOAM.push_back({OAM[oamIndex] + 1, OAM[oamIndex + 1],
-                              OAM[oamIndex + 2], OAM[oamIndex + 3], oamIndex});
+      // TODO: check why 1 there
+      secondaryOAM.push_back({OAM[oamIndex], OAM[oamIndex + 1],
+                              OAM[oamIndex + 2], OAM[oamIndex + 3],
+                              static_cast<bool>(oamIndex)});
     }
   }
-  if (currentCycle >= 1 && currentCycle <= 256) {
-    if (currentScanline != -1 && currentScanline < 240) {
-      // Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
-      for (int i = (currentCycle / 8) + 2; i < 34; i++) {
-        unsigned char upperTile = upperPattern & 0x00FF;
-        unsigned char lowerTile = lowerPattern & 0x00FF;
-        unsigned char tileAttribute = attribute & 0x00FF;
-        // spdlog::info("Tile attribute is: {0:d}", tileAttribute);
-        if (cyclesLeft >= 8) {
-          addCycles(8);
-        } else {
-          cyclesNeeded = cyclesLeft - 8;
-          return;
+
+  if (currentScanline != -1 && currentScanline < 240) {
+    // Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
+    for (int i = 0; i < 32; i++) {
+      co_await consumeCycles(8);
+      unsigned char upperTile = upperPattern & 0x00FF;
+      unsigned char lowerTile = lowerPattern & 0x00FF;
+      unsigned char tileAttribute = attribute & 0x00FF;
+      // spdlog::info("Tile attribute is: {0:d}", tileAttribute);
+
+      struct TileInfo tileInfo = {
+          upperTile, lowerTile, tileAttribute, currentScanline,
+          i * 8,     false,     true};
+
+      renderTile(tileInfo);
+
+      for (int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++) {
+        char lineNo = currentScanline - secondaryOAM[oamIndex].y;
+        char maxLines = getSpriteMode() ? 15 : 7;
+        if (secondaryOAM[oamIndex].y > currentScanline || lineNo > maxLines ||
+            secondaryOAM[oamIndex].x > (7 + i * 8)) {
+          continue;
         }
+        // spdlog::info("LINENO IS: {0:d}", lineNo);
+        secondaryOAM[oamIndex].print();
 
-        struct TileInfo tileInfo = {
-            upperTile,   lowerTile, tileAttribute, currentScanline,
-            (i - 2) * 8, false,     true};
-
+        // Attribute - Flip
+        // attribute = 0;
+        TileInfo tileInfo = fetchSpriteTile(oamIndex);
         renderTile(tileInfo);
-
-        for (int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++) {
-          char lineNo = currentScanline - secondaryOAM[oamIndex].y;
-          char maxLines = getSpriteMode() ? 15 : 7;
-          if (secondaryOAM[oamIndex].y > currentScanline || lineNo > maxLines ||
-              secondaryOAM[oamIndex].x > (7 + (i - 2) * 8)) {
-            continue;
-          }
-          // spdlog::info("LINENO IS: {0:d}", lineNo);
-          secondaryOAM[oamIndex].print();
-
-          // Attribute - Flip
-          // attribute = 0;
-          TileInfo tileInfo = fetchSpriteTile(oamIndex);
-          renderTile(tileInfo);
-          // Implement priority
-        }
-
-        // Place it in the right place
-        // SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
-
-        // Add OAM[n][M]part
-
-        // Add HBlank here
-        upperPattern >>= 8;
-        lowerPattern >>= 8;
-        attribute >>= 8;
-        if (i < 32) {
-          fetchTile(i + xscroll / 8);
-        }
+        // Implement priority
       }
 
-      renderFlag = true;
-    } else {
-      if (currentScanline >= 240) {
-        if (currentScanline == 241) {
-          unsigned char status = getRegister(PPUSTATUS);
-          inVblank = true;
-          setRegister(PPUSTATUS, status | 0x80);
-          SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}",
-                      shouldInterrupt(), getRegister(PPUCTRL));
-          if (shouldInterrupt()) {
-            NMI->triggerInterrupt();
-          }
-        }
-        if (cyclesLeft >= 341) {
-          addCycles(341);
-          // cyclesLeft = 0;
-          currentCycle = 0;
-        } else {
-          cyclesNeeded = cyclesLeft - 341;
-          return;
-        }
-      }
-    }
-    // Are we reaching hee?
-    if (currentScanline != -1) {
-      currentScanline++;
-    } else {
-      if (cyclesLeft >= 320) {
-        addCycles(320);
-        currentScanline++;
-      } else {
-        cyclesNeeded = cyclesLeft - 320;
-        return;
-      }
-    }
-    // currentScanline+=1;
-    SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
-    if (currentScanline == 261) {
-      currentScanline = -1;
-      unsigned char status = getRegister(PPUSTATUS);
-      setRegister(PPUSTATUS, status & 0x7F);
-      inVblank = false;
-    }
-    // fetch nextScanlineData
-  }
-  // check for enable rednering
-  if (currentCycle >= 257 && currentCycle <= 320) {
-    setRegister(OAMADDR, 0);
-  }
-  if (currentCycle == 257) {
-    if (cyclesLeft >= 64) {
-      addCycles(64);
-    } else {
-      cyclesNeeded = cyclesLeft - 64;
-      return;
-    }
-  }
-  if (currentCycle == 321) {
-    if (cyclesLeft >= 8) {
-      SPDLOG_INFO("NEXT: {0:d}", currentScanline);
-      addCycles(8);
-      fetchTile(0 + xscroll / 8);
-    } else {
-      cyclesNeeded = cyclesLeft - 8;
-      return;
-    }
-  }
-  if (currentCycle == 329) {
-    if (cyclesLeft >= 8) {
+      // Place it in the right place
+      // SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
+
+      // Add OAM[n][M]part
+
+      // Add HBlank here
       upperPattern >>= 8;
       lowerPattern >>= 8;
       attribute >>= 8;
-      addCycles(8);
-      fetchTile(1 + xscroll / 8);
-    } else {
-      cyclesNeeded = cyclesLeft - 8;
-      return;
+      if (i < 32) {
+        fetchTile(i + xscroll / 8);
+      }
+    }
+
+    renderFlag = true;
+  } else {
+    if (currentScanline >= 240) {
+      if (currentScanline == 241) {
+        unsigned char status = getRegister(PPUSTATUS);
+        inVblank = true;
+        setRegister(PPUSTATUS, status | 0x80);
+        SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}",
+                    shouldInterrupt(), getRegister(PPUCTRL));
+        if (shouldInterrupt()) {
+          NMI->triggerInterrupt();
+        }
+      }
+
+      co_await consumeCycles(341);
+      // TODO(coroutine)
+      // currentCycle = 0;
     }
   }
-  if (currentCycle == 337) {
-    if (cyclesLeft >= 4) {
-      addCycles(4);
-      currentCycle = 0;
-    } else {
-      cyclesNeeded = cyclesLeft - 4;
-      return;
-    }
+  // Are we reaching hee?
+  if (currentScanline != -1) {
+    currentScanline++;
+  } else {
+    co_await consumeCycles(320);
+    currentScanline++;
   }
-  cyclesNeeded = 0;
-  return;
+  // currentScanline+=1;
+  SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
+  if (currentScanline == 261) {
+    currentScanline = -1;
+    unsigned char status = getRegister(PPUSTATUS);
+    setRegister(PPUSTATUS, status & 0x7F);
+    inVblank = false;
+  }
+  // fetch nextScanlineData
+
+  // check for enable rednering
+  // TODO: assert 257 <= currentCycle <= 320
+  setRegister(OAMADDR, 0);
+  co_await consumeCycles(64);
+
+  co_await consumeCycles(8);
+  fetchTile(0 + xscroll / 8);
+  co_await consumeCycles(8);
+  upperPattern >>= 8;
+  lowerPattern >>= 8;
+  attribute >>= 8;
+  fetchTile(1 + xscroll / 8);
+
+  co_await consumeCycles(4);
 }
 
 RGB PPU::getPixel(int x, int y) { return display[x][y]; }
@@ -757,6 +710,8 @@ bool PPU::getCyclesLeft() {
 }
 
 unsigned short PPU::getAddress() { return address; }
+
+bool PPU::canExecute() { return cyclesLeft >= cyclesNeeded; }
 /*
 PPU CHR ROM should be mapped to the pattern tables
 We also need to check if it is CHR RAM instead

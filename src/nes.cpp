@@ -15,7 +15,8 @@ NES::NES(char *path) {
   apu = new APU();
   memory = new Memory(path, controller, apu);
   cpu = new CPU(memory);
-  ppu = new PPU(memory, cpu->getNMIPointer());
+  ppu = new PPU(memory, cpu->getNMIPointer(), ppuExecutionStopped,
+                ppuCyclesAvailable);
   memory->setPPU(ppu);
 }
 
@@ -24,7 +25,7 @@ bool NES::hasCPUCycles() { return cpu->hasCPUCycles(); }
 
 bool NES::shouldRender() { return ppu->shouldRender(); }
 
-void NES::ppuCycle() { ppu->generateFrame(0); }
+coro::task<void> NES::ppuCycle() { co_await ppu->generateFrame(); }
 
 void NES::cpuCycle() {
   cpuCycles = cpu->cycle();

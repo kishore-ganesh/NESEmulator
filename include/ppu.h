@@ -3,6 +3,8 @@
 #include "interrupt.h"
 #include "memory.h"
 #include "util.h"
+
+#include <coro/coro.hpp>
 #include <vector>
 
 // Nameppaces
@@ -68,7 +70,6 @@ class PPU {
   std::vector<Sprite> secondaryOAM;
   int cyclesLeft;
   int cyclesNeeded;
-  int currentCycle;
   int currentScanline;
   bool bgTransparency[256][240];
   std::vector<std::vector<RGB>> display =
@@ -101,15 +102,19 @@ class PPU {
   };
   char programPalletes[32];
 
+  coro::event &ppuExecutionStopped;
+  coro::event &ppuCyclesAvailable;
+
 public:
-  PPU(Memory *memory, EdgeInterrupt *NMI);
+  PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
+      coro::event &ppuCyclesAvailable);
   unsigned char readAddress(unsigned short address, bool external);
   void writeAddress(unsigned short address, char value);
   unsigned char getRegister(Registers reg);
   void setRegister(Registers reg, char value);
   char getIncrement();
   bool getSpriteMode();
-  void addCycles(int cycles);
+  coro::task<void> consumeCycles(int cycles);
   void addCPUCycles(int cycles);
   void fetchTile(int tileNumber);
   TileInfo fetchSpriteTile(int oamIndex);
@@ -130,12 +135,13 @@ public:
   std::vector<std::vector<RGB>> getFrame();
   void setPixel(int x, int y, RGB value);
   void clearTransparency();
-  void generateFrame(int cycles);
+  coro::task<void> generateFrame();
   void displayFrame();
   bool shouldRender();
   bool getCyclesLeft();
   void setMirroringMode(bool mode);
   unsigned short getAddress();
+  bool canExecute();
 };
 
 /*
