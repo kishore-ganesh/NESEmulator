@@ -17,12 +17,12 @@ APU::APU(){
     SDL_PauseAudioDevice(dev, 0);
     spdlog::info("Audio device: {0:d}", dev);
     spdlog::info("Having: Freq: {0:d},  Format: {1:d}, Samples: {2:d}, Channels: {3:d},", have.freq, have.format, have.samples, have.channels);
-    memset(samples, 0, 8192*sizeof(short));
+    std::fill(samples, samples + numSamples, 0);
+    std::fill(samplesToProcess, samplesToProcess + numSamples*freqScalingFactor, 0);
     samplesIndex = 0;
     status = 0;
     cyclesLeft = 0;
     currentCycle = 0;
-    sample = 0;
 }
 
 unsigned char APU::readRegister(unsigned short address){
@@ -167,32 +167,101 @@ void APU::cycle(){
     // spdlog::info("PULSE OUTPUT IS: {0:f}", pulseOutput);
 
     if(!(triangleOutput == 0 && dmcOutput == 0 && noiseOutput == 0)){
+
         double tndDenominator = triangleOutput/8227.0 + (noiseOutput/12241.0) + (dmcOutput/22638.0);  
 
         tndOutput = 159.79/((1.0/(tndDenominator)) + 100);
     }
 
-    double totalOutput = pulseOutput + tndOutput;
+    // double totalOutput = pulseOutput + tndOutput;
+    double totalOutput = pulseOutput;
     // double totalOutput = pulse1Output;
     // double totalOutput = sin(2*3.14*10*samplesIndex);
     // int sign = (samples
     // Index%8==0)?1:-1;
     // double rescaledOutput = ((pulse1Output+pulse2Output)/30.0)*(65536/2);
-    double rescaledOutput = totalOutput * 65536.0;
+    double rescaledOutput = totalOutput * 32768;
     // spdlog::info("Queued: {0:d}SDL_GetQueuedAudioSize()
     unsigned short total8BitOutput = rescaledOutput;
     // total8BitOutput = (sin(samplesIndex)+1.0)*100;
     // if(totalOutput > 0)
-    //  spdlog::info("TOTAL OUTPUT IS: {0:f}", totalOutput);
-    sample += total8BitOutput;
-    if((currentCycle %19)==0){
-        // samples[samplesIndex] = total8BitOutput;
-        samples[samplesIndex] = sample/19;
-        sample = 0;
-    }
+    int sample = total8BitOutput;
+    samplesToProcess[samplesIndex] = sample;
+
+    // if((currentCycle %19)==0){
+    //     // samples[samplesIndex] = total8BitOutput;
+    //     samples[samplesIndex] = sample/19;
+    //     sample = 0;
+    // }
+
+    constexpr auto lanczosLobes = 3;
+
+    auto sinc = [](float t) {
+      if(t==0.0) return 1.0;
+      return sin(M_PI * t) / (M_PI*t);
+    };
+
+    auto lanczos = [&sinc, lanczosLobes](float t) {
+      if(t < -lanczosLobes) {
+        return 0.0;
+      }
+      if(t > lanczosLobes) {
+        return 0.0;
+      }
+      return sinc(t) * sinc(t / lanczosLobes);
+    };
+
+    constexpr int averageSamples = 0;
+
+    if(samplesIndex == (numSamples * freqScalingFactor - 1)){
+        auto hamming = [](float freq, int i, int M) {
+          if(i == M/2) {
+            return  2 * M_PI * freq;
+          } 
+
+          auto t2 = 0.42 - 0.5 * cos(2 * M_PI * i / M)  + 0.08 * cos(4 * M_PI * i / M);
+
+          auto t1 = sin(2 * M_PI * freq * (i - M / 2)) / (i - M/2);
+          return t1 * t2;
+        };
     
-    if(samplesIndex == 2047){
         // spdlog::info("Playing");
+        constexpr auto freqFactor = 20;
+        for(int s = 0; s < numSamples; s++) {
+          float downsampledSample = 0;
+          auto sumLanczos = 0.0;
+          for(int a = -freqFactor*lanczosLobes; a < freqFactor*lanczosLobes; a++){
+              if(!averageSamples) {          
+                auto newS = (s + 0.5) * freqFactor - 0.5;
+                size_t newIndex = floor(newS) + a;
+                if(newIndex >= 0 && newIndex < samplesIndex) {
+                  downsampledSample += samplesToProcess[newIndex] * lanczos( (a - newS + floor(newS)) / (double)freqFactor);
+                  sumLanczos += lanczos( (a - newS + floor(newS)) / (double)freqFactor);
+                }
+              }
+              else{
+                downsampledSample += samplesToProcess[s + a];
+              }
+            }
+
+          // for(int a = 0; a < 100; a++) {
+          //   if( (s -a) >=0 ) {
+          //     downsampledSample += samplesToProcess[s - a] * hamming(0.02, a, 100);
+          //   }
+          // }
+       
+          // if(s % freqScalingFactor == 0) {
+            // spdlog::error("Sample is: {}", downsampledSample);
+            if(!averageSamples) {
+              samples[s] = (downsampledSample / sumLanczos) * 8.0;
+            // }
+            // else{
+            //   // samples[s / freqScalingFactor] = downsampledSample / (freqScalingFactor * lanczosLobes * 2);
+            // }
+            
+          }
+        }
+
         samplesIndex = 0;
         int status = SDL_QueueAudio(dev, samples, 2048*sizeof(total8BitOutput));
         if(status == -1){
@@ -201,9 +270,7 @@ void APU::cycle(){
         memset(samples, 0, 2048*2);
     }
     else{
-        if((currentCycle %19)==0){
-            samplesIndex++;
-        }
+        samplesIndex++;
     }
     
 
@@ -355,6 +422,7 @@ void TriangleGenerator::lengthCounter(){
 }
 
 unsigned short TriangleGenerator::cycle(){
+    // spdlog::error("Time value is: {}", time);
     if(length == 0 || time < 2 || linearCounter==0){
         return 0;
     }

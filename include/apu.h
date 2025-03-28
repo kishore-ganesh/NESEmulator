@@ -47,13 +47,18 @@ class APU{
     int cyclesLeft;
     int currentCycle;
     int samplesIndex;
-    int sample;
     SDL_AudioDeviceID dev;
     unsigned char status;
     unsigned char frameCounter;
     PulseGenerator pulse1, pulse2;
     TriangleGenerator triangle;
-    unsigned short samples[8192];
+    constexpr static int numSamples = 2048;
+    constexpr static int freqScalingFactor = 19;
+    unsigned short samples[numSamples];
+    unsigned short samplesToProcess[numSamples * freqScalingFactor];
+
+    // TODO: do online approach
+    
     enum class EnableMasks{
         DMC = 0x10,
         NOISE = 0x08,
