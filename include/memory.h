@@ -11,7 +11,7 @@ Class for common memory bus operations ( this is shared between CPU, PPU and
 APU)
  */
 class Memory {
-  uint8_t memory[2 * 1024];
+  std::array<uint8_t, 2 * 1024> memory;
   PPU *ppu;
   Cartridge *cartridge;
   Controller *controller;

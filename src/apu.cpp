@@ -19,7 +19,7 @@ APU::APU() {
   spdlog::info(
       "Having: Freq: {0:d},  Format: {1:d}, Samples: {2:d}, Channels: {3:d},",
       have.freq, have.format, have.samples, have.channels);
-  memset(samples, 0, 8192 * sizeof(short));
+  std::fill(samples.begin(), samples.end(), 0);
   samplesIndex = 0;
   status = 0;
   cyclesLeft = 0;
@@ -190,11 +190,11 @@ void APU::cycle() {
   if (samplesIndex == 2047) {
     // spdlog::info("Playing");
     samplesIndex = 0;
-    int status = SDL_QueueAudio(dev, samples, 2048 * sizeof(total8BitOutput));
+    int status = SDL_QueueAudio(dev, samples.data(), 2048 * sizeof(total8BitOutput));
     if (status == -1) {
       spdlog::error("Unable to play: {0:s}", SDL_GetError());
     }
-    memset(samples, 0, 2048 * 2);
+    std::fill(samples.begin(), samples.end(), 0);
   } else {
     if ((currentCycle % 19) == 0) {
       samplesIndex++;
