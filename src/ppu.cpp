@@ -550,6 +550,7 @@ coro::task<void> PPU::generateFrame() {
               "Nametable Address: {2:x}",
               currentScanline, xscroll, baseAddress);
   SPDLOG_INFO("Sprite zero hit: {0:b}", getRegister(PPUSTATUS) & 0x40);
+  // Idle cycle
   co_await consumeCycles(1);
   if (currentScanline == -1) {
     clearTransparency();
@@ -578,8 +579,11 @@ coro::task<void> PPU::generateFrame() {
   }
 
   if (currentScanline != -1 && currentScanline < 240) {
-    // Current Cycle / 8 + 2: 32 * 8 => 256 cycles here
+    // These are the only visible scanlines (0 - 239)
+    // Main loop that renders tiles. We maintain a buffer of 2 tiles - we shift the tiles by right and fetch the next one
+    // in the end
     for (int i = 0; i < 32; i++) {
+      // Each tile takes approximately 8 cycles
       co_await consumeCycles(8);
       uint8_t upperTile = upperPattern & 0x00FF;
       uint8_t lowerTile = lowerPattern & 0x00FF;
@@ -610,7 +614,6 @@ coro::task<void> PPU::generateFrame() {
       }
 
       // Place it in the right place
-      // SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
 
       // Add OAM[n][M]part
 
@@ -618,8 +621,9 @@ coro::task<void> PPU::generateFrame() {
       upperPattern >>= 8;
       lowerPattern >>= 8;
       attribute >>= 8;
-      if (i < 32) {
-        fetchTile(i + xscroll / 8);
+      // TODO: This may be inaccurate - we're fetching 2 tiles ahead into our pattern
+      if ((i+2) < 32) {
+        fetchTile((i+2) + xscroll / 8);
       }
     }
 
@@ -637,41 +641,52 @@ coro::task<void> PPU::generateFrame() {
         }
       }
 
+      // These are invisible scanlines but we still need to account for their cycle. Each scanline takes 341 cycles
       co_await consumeCycles(341);
-      // TODO(coroutine)
-      // currentCycle = 0;
+      currentScanline += 1;
+      if (currentScanline == 261) {
+        currentScanline = -1;
+        uint8_t status = getRegister(PPUSTATUS);
+        setRegister(PPUSTATUS, status & 0x7F);
+        inVblank = false;
+      }
+      co_return;
     }
   }
-  // Are we reaching hee?
+
   if (currentScanline != -1) {
     currentScanline++;
   } else {
+    // This is the pre-render scanline
+    // TODO: This is the wrong number of cycles
     co_await consumeCycles(320);
     currentScanline++;
   }
-  // currentScanline+=1;
+
+
+  // The following is only executed for visible scanlines
+  
   SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
-  if (currentScanline == 261) {
-    currentScanline = -1;
-    uint8_t status = getRegister(PPUSTATUS);
-    setRegister(PPUSTATUS, status & 0x7F);
-    inVblank = false;
-  }
   // fetch nextScanlineData
 
   // check for enable rednering
   // TODO: assert 257 <= currentCycle <= 320
   setRegister(OAMADDR, 0);
+  // 
+  // Tile data for sprites on next scanline
   co_await consumeCycles(64);
 
+  // Load first two tiles of next scanline
   co_await consumeCycles(8);
+  // Fetch first tile for NEXT scanline
   fetchTile(0 + xscroll / 8);
   co_await consumeCycles(8);
   upperPattern >>= 8;
   lowerPattern >>= 8;
   attribute >>= 8;
+  // Fetch second tile for NEXT scanline
   fetchTile(1 + xscroll / 8);
-
+  // 2 dummy accesses made at the end of a scanline, 2 cycles each
   co_await consumeCycles(4);
 }
 
