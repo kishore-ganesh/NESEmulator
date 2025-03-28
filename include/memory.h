@@ -12,14 +12,21 @@ APU)
  */
 class Memory {
   std::array<uint8_t, 2 * 1024> memory;
-  PPU *ppu;
   std::unique_ptr<Cartridge> cartridge;
-  Controller* controller;
-  APU *apu;
+  std::shared_ptr<Controller> controller;
+  std::shared_ptr<APU> apu;
+  std::weak_ptr<PPU> ppu;
+
+  
 
 public:
-  Memory(char *path, Controller *controller, APU *apu);
-  void setPPU(PPU *ppu);
+  Memory(const char *path, std::shared_ptr<Controller> controller, std::shared_ptr<APU>(apu)): cartridge(std::make_unique<Cartridge>(path)),controller(controller), apu(apu) {
+  std::fill(memory.begin(), memory.end(), 0);
+  // this->ppu = ppu;
+  this->controller = controller;
+  this->apu = apu;
+  };
+  void setPPU(std::weak_ptr<PPU> ppu);
   uint8_t readAddress(unsigned short address);
   uint8_t readCHRAddress(unsigned short address);
   void writeCHRAddress(unsigned short addres, uint8_t value);

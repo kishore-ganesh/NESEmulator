@@ -9,7 +9,7 @@ public:
   uint8_t SP{0xFF};
   int cycles{0};
   int cyclesLeft{0};
-  Memory *memory;
+  std::shared_ptr<Memory> memory;
   bool shouldCaptureInput{false};
   bool stopCaptureInput{false};
   enum masks {
@@ -25,7 +25,7 @@ public:
   unsigned short PC;
   EdgeInterrupt NMI;
   bool IRQ{true}; // refactor
-  CPU(Memory *memory): memory(memory) {
+  CPU(std::shared_ptr<Memory> memory): memory(memory) {
     PC = memory->readLittleEndian(0xFFFC);
     NMI.clearInterrupt();
   };

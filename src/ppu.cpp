@@ -7,26 +7,6 @@ uint8_t getOffset(uint8_t r, uint8_t c) {
   }
   return sum;
 }
-PPU::PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
-         coro::event &ppuCyclesAvailable)
-    : memory(memory), NMI(NMI), ppuExecutionStopped(ppuExecutionStopped),
-      ppuCyclesAvailable(ppuCyclesAvailable) {
-  this->cyclesLeft = 0;
-  this->cyclesNeeded = 0;
-  this->currentScanline = -1;
-  this->xscroll = 0;
-  this->yscroll = 0;
-  this->addressLatch = false;
-  this->inVblank = false;
-  this->internalBuffer = 0;
-  setRegister(Registers::PPUCTRL, 0);
-  setRegister(Registers::PPUMASK, 0);
-  setRegister(Registers::PPUSTATUS, 0xA0);
-  setRegister(Registers::OAMADDR, 0x0);
-  setRegister(Registers::PPUADDR, 0);
-
-  // memset(internalBuffer, 10240, 0);
-}
 
 uint8_t PPU::readAddress(unsigned short address, bool external) {
   // std::cout << address << std::endl;

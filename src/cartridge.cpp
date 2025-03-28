@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <stdio.h>
 
-Cartridge::Cartridge(char *path) {
+Cartridge::Cartridge(const char *path) {
   FILE *rom = fopen(path, "r");
   fread(&header, sizeof(header), 1, rom);
   type = (Mapper)(header.flag[0] >> 4);

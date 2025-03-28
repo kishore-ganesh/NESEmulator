@@ -19,7 +19,7 @@ class Cartridge {
   iNES_Header header;
 
 public:
-  Cartridge(char *path);
+  Cartridge(const char *path);
   uint8_t readPRGAddress(unsigned short address);
   uint8_t readCHRAddress(unsigned short address);
   void writeCHRAddress(unsigned short address, uint8_t value);

@@ -4,16 +4,22 @@
 #include "controller.h"
 #include "cpu.h"
 #include <iostream>
+#include <memory>
 #include <stdio.h>
 
 class NES {
+private:
+  coro::event ppuExecutionStopped;
+  coro::event ppuCyclesAvailable;
+
 public:
   // check check setting of stack pointer
-  CPU *cpu;
-  Memory *memory;
-  PPU *ppu;
-  APU *apu;
-  Controller *controller;
+  std::shared_ptr<Controller> controller;
+  std::shared_ptr<APU> apu;
+  std::shared_ptr<Memory> memory;
+  std::unique_ptr<CPU> cpu;
+  std::shared_ptr<PPU> ppu;
+  
   int cpuCycles;
   /*
   A - Accumulator
@@ -23,7 +29,9 @@ public:
   unsigned short PC;
   bool IRQ, NMI;
   bool previousNMILevel;
-  NES(char *path);
+  NES(const char *path): controller(std::make_shared<Controller>()), apu(std::make_shared<APU>()), memory(std::make_shared<Memory>(path, controller, apu)), cpu(std::make_unique<CPU>(memory)), ppu(std::make_shared<PPU>(memory, cpu->getNMIPointer(), ppuExecutionStopped, ppuCyclesAvailable)) {
+    memory->setPPU(std::weak_ptr(ppu));
+  }
   void cpuCycle();
   coro::task<void> ppuCycle();
   bool ppuCyclesLeft();
@@ -48,9 +56,5 @@ public:
     // TODO: is this necessary
     ppuExecutionStopped.reset();
   }
-
-private:
-  coro::event ppuExecutionStopped;
-  coro::event ppuCyclesAvailable;
 };
 #endif

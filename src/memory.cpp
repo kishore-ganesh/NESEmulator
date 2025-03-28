@@ -4,17 +4,11 @@
 using std::cout;
 using std::endl;
 
-Memory::Memory(char *path, Controller *controller, APU *apu) : cartridge(std::make_unique<Cartridge>(path)) {
-  std::fill(memory.begin(), memory.end(), 0);
-  // this->ppu = ppu;
-  this->controller = controller;
-  this->apu = apu;
-}
 
-void Memory::setPPU(PPU *ppu) {
-  this->ppu = ppu;
-  ppu->setMirroringMode(cartridge->getMirroringMode());
-}
+void Memory::setPPU(std::weak_ptr<PPU> ppu) {
+    this->ppu = ppu;
+    ppu.lock()->setMirroringMode(cartridge->getMirroringMode());
+  };
 uint8_t Memory::readAddress(unsigned short address) {
   if (address <= 0x1FFF) {
     return memory[address % (0x0800)];
@@ -24,10 +18,10 @@ uint8_t Memory::readAddress(unsigned short address) {
   // }
 
   else if (address >= 0x2000 && address <= 0x2007) {
-    return ppu->readRegister((Registers)(address - 0x2000));
+    return ppu.lock()->readRegister((Registers)(address - 0x2000));
     SPDLOG_INFO("PPU access");
   } else if (address >= 0x2008 && address <= 0x3FFF) {
-    return ppu->readRegister((Registers)(address % 8));
+    return ppu.lock()->readRegister((Registers)(address % 8));
   }
   // have mirroring
   else if (address >= 0x4000 && address <= 0x4015) {
@@ -70,11 +64,11 @@ void Memory::writeAddress(unsigned short address, uint8_t value) {
   // add for PPU registers
 
   else if (address >= 0x2000 && address <= 0x2007) {
-    ppu->writeRegister((Registers)(address - 0x2000), value);
+    ppu.lock()->writeRegister((Registers)(address - 0x2000), value);
   }
 
   else if (address >= 0x2008 && address <= 0x3FFF) {
-    ppu->writeRegister((Registers)(address % 8), value);
+    ppu.lock()->writeRegister((Registers)(address % 8), value);
   }
 
   // Have mirroring here

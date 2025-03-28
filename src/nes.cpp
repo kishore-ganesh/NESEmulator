@@ -9,17 +9,6 @@
 #include "nes.h"
 #include <thread>
 
-NES::NES(char *path) {
-  // add CPU code
-  controller = new Controller();
-  apu = new APU();
-  memory = new Memory(path, controller, apu);
-  cpu = new CPU(memory);
-  ppu = new PPU(memory, cpu->getNMIPointer(), ppuExecutionStopped,
-                ppuCyclesAvailable);
-  memory->setPPU(ppu);
-}
-
 void NES::setTime(unsigned int delta) { cpu->setTime(delta); }
 bool NES::hasCPUCycles() { return cpu->hasCPUCycles(); }
 

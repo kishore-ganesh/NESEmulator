@@ -75,7 +75,7 @@ class PPU {
   std::vector<std::vector<RGB>> display =
       std::vector<std::vector<RGB>>(256, std::vector<RGB>(240));
   ; // take care of x and y
-  Memory *memory;
+  std::shared_ptr<Memory> memory;
   EdgeInterrupt *NMI;
   /*
   These are palletes used by the NES (taken verbatim from Blargg's palletes).
@@ -108,8 +108,24 @@ class PPU {
   bool shouldQuit{false};
 
 public:
-  PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
-      coro::event &ppuCyclesAvailable);
+  PPU(std::shared_ptr<Memory> memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
+      coro::event &ppuCyclesAvailable):  memory(memory), NMI(NMI), ppuExecutionStopped(ppuExecutionStopped),
+      ppuCyclesAvailable(ppuCyclesAvailable) {
+    this->cyclesLeft = 0;
+    this->cyclesNeeded = 0;
+    this->currentScanline = -1;
+    this->xscroll = 0;
+    this->yscroll = 0;
+    this->addressLatch = false;
+    this->inVblank = false;
+    this->internalBuffer = 0;
+    setRegister(Registers::PPUCTRL, 0);
+    setRegister(Registers::PPUMASK, 0);
+    setRegister(Registers::PPUSTATUS, 0xA0);
+    setRegister(Registers::OAMADDR, 0x0);
+    setRegister(Registers::PPUADDR, 0);
+  }
+  // memset(internalBuffer, 10240, 0);;
   uint8_t readAddress(unsigned short address, bool external);
   void writeAddress(unsigned short address, uint8_t value);
   uint8_t getRegister(Registers reg);
