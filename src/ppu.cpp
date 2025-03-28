@@ -334,7 +334,7 @@ void PPU::writeRegister(Registers reg, uint8_t value) {
   case Registers::PPUMASK:
   case Registers::PPUSTATUS:
   default:
-    assert(false && "Write to register that is not allowed");
+    SPDLOG_WARN("Ignoring write to regsiter");
   }
 }
 
