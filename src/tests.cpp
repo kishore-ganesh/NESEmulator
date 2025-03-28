@@ -103,9 +103,9 @@ void RTSTest(NES &nes) {
 }
 
 void PPUAddressTest(NES &nes) {
-  nes.ppu->readRegister(PPUSTATUS);
-  nes.ppu->writeRegister(PPUADDR, 0x21);
-  nes.ppu->writeRegister(PPUADDR, 0x08);
+  nes.ppu->readRegister(Registers::PPUSTATUS);
+  nes.ppu->writeRegister(Registers::PPUADDR, 0x21);
+  nes.ppu->writeRegister(Registers::PPUADDR, 0x08);
   if (nes.ppu->getAddress() != 0x2108) {
     printf("PPU ADDR Test failed, address is: %x\n", nes.ppu->getAddress());
   }

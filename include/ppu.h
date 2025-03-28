@@ -10,7 +10,7 @@
 // Nameppaces
 
 class Memory; // why did forward declaration work
-enum Registers {
+enum class Registers {
   PPUCTRL,
   PPUMASK,
   PPUSTATUS,

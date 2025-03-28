@@ -59,7 +59,7 @@ void Memory::writeCHRAddress(unsigned short address, uint8_t value) {
 void Memory::writeAddress(unsigned short address, uint8_t value) {
   SPDLOG_INFO("Writing to: {0:x} value: {1:x}", address, value);
   if (address == 0x2000) {
-    // spdlog::info("Writing to PPUCTRL: {0:x}\n", value);
+    // spdlog::info("Writing to Registers::PPUCTRL: {0:x}\n", value);
   }
   if (address >= 0x2008 && address <= 0x3fff) {
     SPDLOG_INFO("Mirrored register access");

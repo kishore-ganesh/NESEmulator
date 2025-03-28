@@ -19,11 +19,11 @@ PPU::PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
   this->addressLatch = false;
   this->inVblank = false;
   this->internalBuffer = 0;
-  setRegister(PPUCTRL, 0);
-  setRegister(PPUMASK, 0);
-  setRegister(PPUSTATUS, 0xA0);
-  setRegister(OAMADDR, 0x0);
-  setRegister(PPUADDR, 0);
+  setRegister(Registers::PPUCTRL, 0);
+  setRegister(Registers::PPUMASK, 0);
+  setRegister(Registers::PPUSTATUS, 0xA0);
+  setRegister(Registers::OAMADDR, 0x0);
+  setRegister(Registers::PPUADDR, 0);
 
   // memset(internalBuffer, 10240, 0);
 }
@@ -200,12 +200,12 @@ void PPU::writeAddress(unsigned short address, uint8_t value) {
   }
 }
 
-uint8_t PPU::getRegister(Registers reg) { return registers[reg]; }
+uint8_t PPU::getRegister(Registers reg) { return registers[static_cast<int>(reg)]; }
 
-void PPU::setRegister(Registers reg, uint8_t value) { registers[reg] = value; }
+void PPU::setRegister(Registers reg, uint8_t value) { registers[static_cast<int>(reg)] = value; }
 
 uint8_t PPU::getIncrement() {
-  if (getRegister(PPUCTRL) & 0x04) {
+  if (getRegister(Registers::PPUCTRL) & 0x04) {
     return 32;
   }
   return 1;
@@ -214,33 +214,33 @@ uint8_t PPU::getIncrement() {
 uint8_t PPU::readRegister(Registers reg) {
   uint8_t value = getRegister(reg);
   switch (reg) {
-  case PPUSTATUS: {
+  case Registers::PPUSTATUS: {
     setRegister(reg, value & 0x7F);
     addressLatch = false;
-    // SPDLOG_INFO("PPUSTATUS READ");
+    // SPDLOG_INFO("Registers::PPUSTATUS READ");
     // address = 0;
     // address = address >
     // xscroll = 0;
     // yscroll = 0;
     break;
   }
-  case OAMDATA: {
+  case Registers::OAMDATA: {
     return OAM[value];
     break;
   }
-  case PPUDATA: {
+  case Registers::PPUDATA: {
     SPDLOG_INFO("READING FROM PPU ADDRESS: {0:x}", address);
     value = readAddress(address, true);
     uint8_t increment = getIncrement();
-    // uint8_t currentAddress = getRegister(PPUADDR);
-    // setRegister(PPUADDR,currentAddress+increment);
+    // uint8_t currentAddress = getRegister(Registers::PPUADDR);
+    // setRegister(Registers::PPUADDR,currentAddress+increment);
     address += increment;
     break;
   }
 
-  case PPUCTRL:
-  case PPUMASK:
-  case OAMADDR:
+  case Registers::PPUCTRL:
+  case Registers::PPUMASK:
+  case Registers::OAMADDR:
   default:
     assert(false && "Inaccessible register read");
   }
@@ -262,31 +262,31 @@ void PPU::writeRegister(Registers reg, uint8_t value) {
   if (!inVblank) {
     SPDLOG_INFO("WRITING REGISTERS OUTSIDE OF VBLANK");
   }
-  if (reg == PPUCTRL && (value & 0x03) != (getRegister(PPUCTRL) & 0x03)) {
-    SPDLOG_INFO("Register PPUCTRL changed");
+  if (reg == Registers::PPUCTRL && (value & 0x03) != (getRegister(Registers::PPUCTRL) & 0x03)) {
+    SPDLOG_INFO("Register Registers::PPUCTRL changed");
   }
   setRegister(reg, value);
-  uint8_t ppuStatus = getRegister(PPUSTATUS);
-  setRegister(PPUSTATUS, (ppuStatus & 0xE0) | (value & 0x1F));
+  uint8_t ppuStatus = getRegister(Registers::PPUSTATUS);
+  setRegister(Registers::PPUSTATUS, (ppuStatus & 0xE0) | (value & 0x1F));
   switch (reg) {
-  case PPUCTRL: {
+  case Registers::PPUCTRL: {
     baseAddress = getNameTableAddress(value & 0x03);
     break;
   }
-  case OAMADDR: {
+  case Registers::OAMADDR: {
     SPDLOG_INFO("OAM ADDRESS SET: {0:x}", value);
-    setRegister(OAMADDR, value);
+    setRegister(Registers::OAMADDR, value);
     break;
   }
-  case OAMDATA: {
-    uint8_t address = getRegister(OAMADDR);
+  case Registers::OAMDATA: {
+    uint8_t address = getRegister(Registers::OAMADDR);
     SPDLOG_INFO("OAM ADDRESS: {0:d}", address);
     writeOAM(address, value);
-    setRegister(OAMADDR, address + 1);
+    setRegister(Registers::OAMADDR, address + 1);
     break;
   }
-  case PPUSCROLL: {
-    // SPDLOG_INFO("PPUSCROLL set");
+  case Registers::PPUSCROLL: {
+    // SPDLOG_INFO("Registers::PPUSCROLL set");
     if (!addressLatch) {
       xscroll = value;
       SPDLOG_INFO("PPU xscroll set to: {0:d} at scanline: {1:d}", xscroll,
@@ -305,7 +305,7 @@ void PPU::writeRegister(Registers reg, uint8_t value) {
     SPDLOG_INFO("Scrolling => x: {0:d}, y: {0:d}", xscroll, yscroll);
     break;
   }
-  case PPUADDR: {
+  case Registers::PPUADDR: {
     // SPDLOG_INFO("Address latch is: {0:b}", addressLatch);
 
     if (!addressLatch) {
@@ -323,27 +323,27 @@ void PPU::writeRegister(Registers reg, uint8_t value) {
     SPDLOG_INFO("PPU ADDRESS NOW: {0:x}", address);
     break;
   }
-  case PPUDATA: {
+  case Registers::PPUDATA: {
     SPDLOG_INFO("WRITING TO PPU DATA: {0:x}", address);
     writeAddress(address, value);
     uint8_t increment = getIncrement();
-    // setRegister(PPUADDR, address + increment);
+    // setRegister(Registers::PPUADDR, address + increment);
     address += increment;
     break;
   }
-  case PPUMASK:
-  case PPUSTATUS:
+  case Registers::PPUMASK:
+  case Registers::PPUSTATUS:
   default:
     assert(false && "Write to register that is not allowed");
   }
 }
 
 unsigned short PPU::getNameTableAddress(uint8_t nameTableNumber) {
-  // uint8_t nameTableNumber = getRegister(PPUCTRL) & 0x03;
+  // uint8_t nameTableNumber = getRegister(Registers::PPUCTRL) & 0x03;
   short baseAddress = 0x2000;
   short address = baseAddress + ((nameTableNumber * 4) << 8);
   SPDLOG_INFO("NAMETABLE ADDRRESS: {0:x}", address);
-  SPDLOG_INFO("PPUCTRL: {0:x}", getRegister(PPUCTRL));
+  SPDLOG_INFO("Registers::PPUCTRL: {0:x}", getRegister(Registers::PPUCTRL));
   // SPDLOG_INFO("NNO is: {0:d}", nameTableNumber);
 
   return address; // check
@@ -351,13 +351,13 @@ unsigned short PPU::getNameTableAddress(uint8_t nameTableNumber) {
 
 short PPU::getBasePatternTableAddress(bool background) {
   uint8_t mask = 0x10;
-  SPDLOG_INFO("PPU CTRL {0:x}", getRegister(PPUCTRL));
+  SPDLOG_INFO("PPU CTRL {0:x}", getRegister(Registers::PPUCTRL));
   if (!background) {
     mask = 0x08;
     // return 0x0000;
   }
 
-  if (!(getRegister(PPUCTRL) & mask)) {
+  if (!(getRegister(Registers::PPUCTRL) & mask)) {
     return 0x0000;
   } else {
     return 0x1000;
@@ -365,14 +365,14 @@ short PPU::getBasePatternTableAddress(bool background) {
 }
 
 bool PPU::shouldInterrupt() {
-  uint8_t value = getRegister(PPUCTRL);
+  uint8_t value = getRegister(Registers::PPUCTRL);
   return value & 0x80;
 }
 
 void PPU::addCPUCycles(int cycles) { cyclesLeft += (cycles * 3); }
 
 bool PPU::getSpriteMode() {
-  uint8_t regValue = getRegister(PPUCTRL);
+  uint8_t regValue = getRegister(Registers::PPUCTRL);
   return regValue & 0x20;
 }
 
@@ -510,8 +510,8 @@ void PPU::renderTile(TileInfo tileInfo) {
       // SPDLOG_INFO("Background is: {}")
       SPDLOG_INFO("SPRITE ZERO HIT at x: {0:d}, scanline: {1:d}", x,
                   currentScanline);
-      uint8_t ppuStatus = getRegister(PPUSTATUS);
-      setRegister(PPUSTATUS, ppuStatus | 0x40);
+      uint8_t ppuStatus = getRegister(Registers::PPUSTATUS);
+      setRegister(Registers::PPUSTATUS, ppuStatus | 0x40);
     }
 
     if (tileInfo.background) {
@@ -555,20 +555,20 @@ coro::task<void> PPU::consumeCycles(int cycles) {
 
 coro::task<void> PPU::generateFrame() {
   SPDLOG_INFO("CYCLES LEFT: {1:d}", cyclesLeft);
-  int regValue = getRegister(PPUCTRL);
+  int regValue = getRegister(Registers::PPUCTRL);
   SPDLOG_INFO("SPRITE MODE: {0}", (regValue & 0x20) ? "8x16" : "8x8");
   SPDLOG_INFO("SECONDARY OAM SIZE: {0:d}", secondaryOAM.size());
   SPDLOG_INFO("Current scanline: {0:d}, Current scroll: {1:d}, Current "
               "Nametable Address: {2:x}",
               currentScanline, xscroll, baseAddress);
-  SPDLOG_INFO("Sprite zero hit: {0:b}", getRegister(PPUSTATUS) & 0x40);
+  SPDLOG_INFO("Sprite zero hit: {0:b}", getRegister(Registers::PPUSTATUS) & 0x40);
   // Idle cycle
   co_await consumeCycles(1);
   if (currentScanline == -1) {
     clearTransparency();
-    uint8_t ppuStatus = getRegister(PPUSTATUS);
+    uint8_t ppuStatus = getRegister(Registers::PPUSTATUS);
     SPDLOG_INFO("Sprite zero cleared");
-    setRegister(PPUSTATUS, ppuStatus & ~(0x40));
+    setRegister(Registers::PPUSTATUS, ppuStatus & ~(0x40));
   }
   renderFlag = false;
   secondaryOAM.clear();
@@ -646,11 +646,11 @@ coro::task<void> PPU::generateFrame() {
   } else {
     if (currentScanline >= 240) {
       if (currentScanline == 241) {
-        uint8_t status = getRegister(PPUSTATUS);
+        uint8_t status = getRegister(Registers::PPUSTATUS);
         inVblank = true;
-        setRegister(PPUSTATUS, status | 0x80);
-        SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, PPUCTRL: {1:d}",
-                    shouldInterrupt(), getRegister(PPUCTRL));
+        setRegister(Registers::PPUSTATUS, status | 0x80);
+        SPDLOG_INFO("SHOULD INTERRUPT: {0:b}, Registers::PPUCTRL: {1:d}",
+                    shouldInterrupt(), getRegister(Registers::PPUCTRL));
         if (shouldInterrupt()) {
           NMI->triggerInterrupt();
         }
@@ -662,8 +662,8 @@ coro::task<void> PPU::generateFrame() {
       currentScanline += 1;
       if (currentScanline == 261) {
         currentScanline = -1;
-        uint8_t status = getRegister(PPUSTATUS);
-        setRegister(PPUSTATUS, status & 0x7F);
+        uint8_t status = getRegister(Registers::PPUSTATUS);
+        setRegister(Registers::PPUSTATUS, status & 0x7F);
         inVblank = false;
       }
       co_return;
@@ -686,7 +686,7 @@ coro::task<void> PPU::generateFrame() {
 
   // check for enable rednering
   // TODO: assert 257 <= currentCycle <= 320
-  setRegister(OAMADDR, 0);
+  setRegister(Registers::OAMADDR, 0);
   //
   // Tile data for sprites on next scanline
   co_await consumeCycles(64);
