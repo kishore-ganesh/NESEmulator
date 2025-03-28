@@ -12,8 +12,8 @@ struct iNES_Header {
 
 enum class Mapper { NROM, MMC1, UNROM };
 class Cartridge {
-  uint8_t *PRG_ROM;
-  uint8_t CHR_ROM[8192]; // check this
+  std::vector<uint8_t> PRG_ROM;
+  std::array<uint8_t, 8192> CHR_ROM;
   UNROM *unrom;
   Mapper type;
   iNES_Header header;

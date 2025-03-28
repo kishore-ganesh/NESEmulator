@@ -55,7 +55,7 @@ class APU {
   uint8_t frameCounter;
   PulseGenerator pulse1, pulse2;
   TriangleGenerator triangle;
-  unsigned short samples[8192];
+  std::array<short, 8192> samples;
   enum class EnableMasks {
     DMC = 0x10,
     NOISE = 0x08,

@@ -1,9 +1,10 @@
 #include "memory.h"
+#include <memory>
+
 using std::cout;
 using std::endl;
 
-Memory::Memory(char *path, Controller *controller, APU *apu) {
-  cartridge = new Cartridge(path);
+Memory::Memory(char *path, Controller *controller, APU *apu) : cartridge(std::make_unique<Cartridge>(path)) {
   std::fill(memory.begin(), memory.end(), 0);
   // this->ppu = ppu;
   this->controller = controller;

@@ -13,8 +13,8 @@ APU)
 class Memory {
   std::array<uint8_t, 2 * 1024> memory;
   PPU *ppu;
-  Cartridge *cartridge;
-  Controller *controller;
+  std::unique_ptr<Cartridge> cartridge;
+  Controller* controller;
   APU *apu;
 
 public:

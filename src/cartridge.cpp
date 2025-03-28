@@ -9,21 +9,21 @@ Cartridge::Cartridge(char *path) {
   spdlog::info("Cartridge type: {0:d}", type);
   switch (type) {
   case Mapper::NROM: {
-    PRG_ROM = new uint8_t[std::max(header.prgSize * 0x4000, 32768)];
+    PRG_ROM.resize(std::max(header.prgSize * 0x4000, 32768));
     printHeader(header);
     if (header.flag[0] & 0x0004) {
       fseek(rom, 512, SEEK_CUR); // check this
     }
 
     long pos = ftell(rom);
-    fread(PRG_ROM, header.prgSize * 0x4000, 1, rom);
+    fread(PRG_ROM.data(), header.prgSize * 0x4000, 1, rom);
     // This done due to mirroring
     if (header.prgSize == 1) {
       fseek(rom, pos, SEEK_SET);
       fread(&PRG_ROM[0x4000], 0x4000, 1, rom); // check this
     }
 
-    fread(CHR_ROM, header.chrSize * 8192, 1, rom);
+    fread(CHR_ROM.data(), header.chrSize * 8192, 1, rom);
     break;
   }
 
