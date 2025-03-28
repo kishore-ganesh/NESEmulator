@@ -144,9 +144,7 @@ public:
   void setMirroringMode(bool mode);
   unsigned short getAddress();
   bool canExecute();
-  void raiseShouldQuit() {
-    shouldQuit = true;
-  }
+  void raiseShouldQuit() { shouldQuit = true; }
 };
 
 /*

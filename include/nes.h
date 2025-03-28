@@ -36,9 +36,7 @@ public:
 
   bool ppuCanExecute() { return ppu->canExecute(); }
   void raisePpuShouldQuit() { ppu->raiseShouldQuit(); };
-  void resumePpu() {
-    ppuCyclesAvailable.set();
-  }
+  void resumePpu() { ppuCyclesAvailable.set(); }
   void resumePpuIfPossible() {
     if (ppu->canExecute()) {
       ppuCyclesAvailable.set();

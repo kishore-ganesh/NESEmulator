@@ -122,6 +122,7 @@ uint8_t PPU::readAddress(unsigned short address, bool external) {
     // return programPalletes[address-0x3F00]; // fix this
     /* Return pallete -  */
   }
+  assert(false && "Should not reach here");
 }
 
 void PPU::writeAddress(unsigned short address, uint8_t value) {
@@ -236,6 +237,12 @@ uint8_t PPU::readRegister(Registers reg) {
     address += increment;
     break;
   }
+
+  case PPUCTRL:
+  case PPUMASK:
+  case OAMADDR:
+  default:
+    assert(false && "Inaccessible register read");
   }
 
   return value;
@@ -324,6 +331,10 @@ void PPU::writeRegister(Registers reg, uint8_t value) {
     address += increment;
     break;
   }
+  case PPUMASK:
+  case PPUSTATUS:
+  default:
+    assert(false && "Write to register that is not allowed");
   }
 }
 
@@ -462,7 +473,8 @@ TileInfo PPU::fetchSpriteTile(int oamIndex) {
       horizontalFlip,
       false,
       secondaryOAM[oamIndex].index,
-      static_cast<bool>(secondaryOAM[oamIndex].attributes & 0x20)};
+      static_cast<bool>(secondaryOAM[oamIndex].attributes & 0x20),
+      -1};
   return tileInfo;
 }
 void PPU::renderTile(TileInfo tileInfo) {
@@ -528,7 +540,7 @@ void PPU::renderTile(TileInfo tileInfo) {
 
 coro::task<void> PPU::consumeCycles(int cycles) {
   // If we need to quit, short circuit all requests and exit
-  if(shouldQuit) {
+  if (shouldQuit) {
     co_return;
   }
   if (cycles > cyclesLeft) {
@@ -580,8 +592,8 @@ coro::task<void> PPU::generateFrame() {
 
   if (currentScanline != -1 && currentScanline < 240) {
     // These are the only visible scanlines (0 - 239)
-    // Main loop that renders tiles. We maintain a buffer of 2 tiles - we shift the tiles by right and fetch the next one
-    // in the end
+    // Main loop that renders tiles. We maintain a buffer of 2 tiles - we shift
+    // the tiles by right and fetch the next one in the end
     for (int i = 0; i < 32; i++) {
       // Each tile takes approximately 8 cycles
       co_await consumeCycles(8);
@@ -592,11 +604,13 @@ coro::task<void> PPU::generateFrame() {
 
       struct TileInfo tileInfo = {
           upperTile, lowerTile, tileAttribute, currentScanline,
-          i * 8,     false,     true};
+          i * 8,     false,     true,          0,
+          false,     -1};
+      ;
 
       renderTile(tileInfo);
 
-      for (int oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++) {
+      for (size_t oamIndex = 0; oamIndex < secondaryOAM.size(); oamIndex++) {
         uint8_t lineNo = currentScanline - secondaryOAM[oamIndex].y;
         uint8_t maxLines = getSpriteMode() ? 15 : 7;
         if (secondaryOAM[oamIndex].y > currentScanline || lineNo > maxLines ||
@@ -621,9 +635,10 @@ coro::task<void> PPU::generateFrame() {
       upperPattern >>= 8;
       lowerPattern >>= 8;
       attribute >>= 8;
-      // TODO: This may be inaccurate - we're fetching 2 tiles ahead into our pattern
-      if ((i+2) < 32) {
-        fetchTile((i+2) + xscroll / 8);
+      // TODO: This may be inaccurate - we're fetching 2 tiles ahead into our
+      // pattern
+      if ((i + 2) < 32) {
+        fetchTile((i + 2) + xscroll / 8);
       }
     }
 
@@ -641,7 +656,8 @@ coro::task<void> PPU::generateFrame() {
         }
       }
 
-      // These are invisible scanlines but we still need to account for their cycle. Each scanline takes 341 cycles
+      // These are invisible scanlines but we still need to account for their
+      // cycle. Each scanline takes 341 cycles
       co_await consumeCycles(341);
       currentScanline += 1;
       if (currentScanline == 261) {
@@ -663,16 +679,15 @@ coro::task<void> PPU::generateFrame() {
     currentScanline++;
   }
 
-
   // The following is only executed for visible scanlines
-  
+
   SPDLOG_INFO("CURRENT SCANLINE: {0:d}", currentScanline);
   // fetch nextScanlineData
 
   // check for enable rednering
   // TODO: assert 257 <= currentCycle <= 320
   setRegister(OAMADDR, 0);
-  // 
+  //
   // Tile data for sprites on next scanline
   co_await consumeCycles(64);
 

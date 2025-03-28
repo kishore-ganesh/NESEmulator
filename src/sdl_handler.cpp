@@ -63,7 +63,7 @@ coro::task<void> SDLHandler::cpuLoop() {
         SDL_GetTicks() - frameStartTicks); // TODO: fix this, frame calculation
                                            // seems problematic
 
-    while (nes->hasCPUCycles() && !shouldQuit){
+    while (nes->hasCPUCycles() && !shouldQuit) {
       if (nes->ppuCanExecute()) {
         co_await nes->waitForPpuExecution();
       }
@@ -80,7 +80,7 @@ coro::task<void> SDLHandler::cpuLoop() {
         displayFrame(nes->getFrame());
         frameStartTicks = SDL_GetTicks();
       }
-    }    
+    }
   }
 
   // Wake up PPU if it is sleeping to give it a chance to exit

@@ -4,7 +4,7 @@ using std::endl;
 
 Memory::Memory(char *path, Controller *controller, APU *apu) {
   cartridge = new Cartridge(path);
-  memset(memory, 2 * 1024, 0);
+  memset(memory, 0, 2 * 1024);
   // this->ppu = ppu;
   this->controller = controller;
   this->apu = apu;

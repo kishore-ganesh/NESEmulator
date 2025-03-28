@@ -461,7 +461,6 @@ void CPU::ADC(unsigned short address) {
 void CPU::SBC(unsigned short address) {
   uint8_t data = readAddress(address);
   SPDLOG_INFO("SBC with data: {0:x} from address: {1:x}", data, address);
-  short result = A - data - !getFlag(CARRY);
   int8_t result8b = A - data - !getFlag(CARRY);
   auto aSigned = static_cast<int8_t>(A);
   auto dataSigned = static_cast<int8_t>(data);
@@ -573,7 +572,7 @@ void CPU::ROR(unsigned short address, bool accumulator) {
   setFlag(CARRY, nextCarryBit);
   SPDLOG_INFO("ROR");
 }
-void CPU::STX(unsigned short address, bool accumulator) {
+void CPU::STX(unsigned short address, bool) {
   writeAddress(address, X);
   SPDLOG_INFO("STX at address {0:x}", address); // check if flag is set here
 }
@@ -584,13 +583,13 @@ void CPU::LDX(unsigned short address) {
   X = data; // check if flag to be set here
   checkValueFlags(X);
 }
-void CPU::DEC(unsigned short address, bool accumulator) {
+void CPU::DEC(unsigned short address, bool) {
   uint8_t data = readAddress(address);
   writeAddress(address, data - 1);
   checkValueFlags(data - 1);
   SPDLOG_INFO("DEC address: {0:x} with data {1:x}", address, data);
 }
-void CPU::INC(unsigned short address, bool accumulator) {
+void CPU::INC(unsigned short address, bool) {
   uint8_t data = readAddress(address);
   writeAddress(address, data + 1);
   checkValueFlags(data + 1);
@@ -605,14 +604,14 @@ void CPU::BIT(unsigned short address) {
   }
   uint8_t data = readAddress(address);
   bool zeroBit, overflowBit, negativeBit;
-  zeroBit = data & A == 0 ? 1 : 0;
+  zeroBit = (data & A) == 0;
   negativeBit = data & 0x80;
   overflowBit = (data & 0x40);
   // SPDLOG_INFO("BIT Data is {}", data);
   SPDLOG_INFO("BIT with data: {0:x}, from address: {1:x}", address, data);
   SPDLOG_INFO("BIT negativeBit: {0:b}, overflowBit: {1:d}", negativeBit,
               0x8D & 0x40);
-  setFlag(ZERO, (data & A) == 0);
+  setFlag(ZERO, zeroBit);
   setFlag(INTEGER_OVERFLOW, overflowBit);
   setFlag(NEGATIVE, negativeBit);
 }
@@ -651,10 +650,6 @@ void CPU::CPY(unsigned short address) {
   uint8_t data = readAddress(address);
   SPDLOG_INFO("CPY with data: {0:x} from address: {1:x}", data, address);
   bool borrowBit = Y >= data ? 1 : 0;
-  bool zeroBit = false;
-  if (Y == data) {
-    zeroBit = true;
-  }
   setFlag(CARRY, borrowBit);
   checkValueFlags(Y - data);
 }
