@@ -78,9 +78,8 @@ coro::task<void> SDLHandler::cpuLoop() {
       if (nes->shouldRender()) {
         handleEvent();
         displayFrame(nes->getFrame());
+        frameStartTicks = SDL_GetTicks();
       }
-
-      frameStartTicks = SDL_GetTicks();
     }
   }
 }
