@@ -17,14 +17,15 @@ class Memory {
   std::shared_ptr<APU> apu;
   std::weak_ptr<PPU> ppu;
 
-  
-
 public:
-  Memory(const char *path, std::shared_ptr<Controller> controller, std::shared_ptr<APU>(apu)): cartridge(std::make_unique<Cartridge>(path)),controller(controller), apu(apu) {
-  std::fill(memory.begin(), memory.end(), 0);
-  // this->ppu = ppu;
-  this->controller = controller;
-  this->apu = apu;
+  Memory(const char *path, std::shared_ptr<Controller> controller,
+         std::shared_ptr<APU>(apu))
+      : cartridge(std::make_unique<Cartridge>(path)), controller(controller),
+        apu(apu) {
+    std::fill(memory.begin(), memory.end(), 0);
+    // this->ppu = ppu;
+    this->controller = controller;
+    this->apu = apu;
   };
   void setPPU(std::weak_ptr<PPU> ppu);
   uint8_t readAddress(unsigned short address);

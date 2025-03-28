@@ -25,7 +25,7 @@ public:
   unsigned short PC;
   EdgeInterrupt NMI;
   bool IRQ{true}; // refactor
-  CPU(std::shared_ptr<Memory> memory): memory(memory) {
+  CPU(std::shared_ptr<Memory> memory) : memory(memory) {
     PC = memory->readLittleEndian(0xFFFC);
     NMI.clearInterrupt();
   };

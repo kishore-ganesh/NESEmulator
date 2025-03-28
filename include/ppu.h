@@ -108,9 +108,10 @@ class PPU {
   bool shouldQuit{false};
 
 public:
-  PPU(std::shared_ptr<Memory> memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
-      coro::event &ppuCyclesAvailable):  memory(memory), NMI(NMI), ppuExecutionStopped(ppuExecutionStopped),
-      ppuCyclesAvailable(ppuCyclesAvailable) {
+  PPU(std::shared_ptr<Memory> memory, EdgeInterrupt *NMI,
+      coro::event &ppuExecutionStopped, coro::event &ppuCyclesAvailable)
+      : memory(memory), NMI(NMI), ppuExecutionStopped(ppuExecutionStopped),
+        ppuCyclesAvailable(ppuCyclesAvailable) {
     this->cyclesLeft = 0;
     this->cyclesNeeded = 0;
     this->currentScanline = -1;

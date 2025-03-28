@@ -19,7 +19,7 @@ public:
   std::shared_ptr<Memory> memory;
   std::unique_ptr<CPU> cpu;
   std::shared_ptr<PPU> ppu;
-  
+
   int cpuCycles;
   /*
   A - Accumulator
@@ -29,7 +29,13 @@ public:
   unsigned short PC;
   bool IRQ, NMI;
   bool previousNMILevel;
-  NES(const char *path): controller(std::make_shared<Controller>()), apu(std::make_shared<APU>()), memory(std::make_shared<Memory>(path, controller, apu)), cpu(std::make_unique<CPU>(memory)), ppu(std::make_shared<PPU>(memory, cpu->getNMIPointer(), ppuExecutionStopped, ppuCyclesAvailable)) {
+  NES(const char *path)
+      : controller(std::make_shared<Controller>()),
+        apu(std::make_shared<APU>()),
+        memory(std::make_shared<Memory>(path, controller, apu)),
+        cpu(std::make_unique<CPU>(memory)),
+        ppu(std::make_shared<PPU>(memory, cpu->getNMIPointer(),
+                                  ppuExecutionStopped, ppuCyclesAvailable)) {
     memory->setPPU(std::weak_ptr(ppu));
   }
   void cpuCycle();
