@@ -527,6 +527,10 @@ void PPU::renderTile(TileInfo tileInfo) {
 }
 
 coro::task<void> PPU::consumeCycles(int cycles) {
+  // If we need to quit, short circuit all requests and exit
+  if(shouldQuit) {
+    co_return;
+  }
   if (cycles > cyclesLeft) {
     cyclesNeeded = cycles;
     ppuExecutionStopped.set();

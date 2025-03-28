@@ -105,6 +105,8 @@ class PPU {
   coro::event &ppuExecutionStopped;
   coro::event &ppuCyclesAvailable;
 
+  bool shouldQuit{false};
+
 public:
   PPU(Memory *memory, EdgeInterrupt *NMI, coro::event &ppuExecutionStopped,
       coro::event &ppuCyclesAvailable);
@@ -142,6 +144,9 @@ public:
   void setMirroringMode(bool mode);
   unsigned short getAddress();
   bool canExecute();
+  void raiseShouldQuit() {
+    shouldQuit = true;
+  }
 };
 
 /*
