@@ -268,7 +268,8 @@ void CPU::processInstruction(uint8_t instruction) {
       readAbsoluteX(PC, address, X); /*read absolute Y */
       break;
     }
-    default: assert(false && "bbb is invalid");
+    default:
+      assert(false && "bbb is invalid");
     }
 
     switch (aaa) {
@@ -296,7 +297,8 @@ void CPU::processInstruction(uint8_t instruction) {
     case 0x7:
       SBC(address);
       break;
-    default: assert(false && "aaa is invalid");
+    default:
+      assert(false && "aaa is invalid");
     }
   } else if (cc == 0x02 || cc == 0x00) {
     bool accumulator = false;
@@ -334,7 +336,8 @@ void CPU::processInstruction(uint8_t instruction) {
       }
       break;
     }
-    default: assert(false && "bbb is invalid");
+    default:
+      assert(false && "bbb is invalid");
     }
     if (cc == 2) {
       switch (aaa) {
@@ -362,7 +365,8 @@ void CPU::processInstruction(uint8_t instruction) {
       case 0x7:
         INC(address, accumulator);
         break;
-      default: assert(false && "aaa is invalid");
+      default:
+        assert(false && "aaa is invalid");
       }
     } else {
       switch (aaa) {
@@ -387,7 +391,8 @@ void CPU::processInstruction(uint8_t instruction) {
       case 0x7:
         CPX(address);
         break; // CPX
-      default: assert(false && "aaa is invalid");
+      default:
+        assert(false && "aaa is invalid");
       }
     }
   }
@@ -437,7 +442,6 @@ void CPU::EOR(unsigned short address) {
   checkValueFlags(A);
 }
 
-
 void CPU::ADC(unsigned short address) {
   uint8_t data = readAddress(address);
   SPDLOG_INFO("ADC with data: {0:x} from address: {1:x}", data, address);
@@ -446,9 +450,8 @@ void CPU::ADC(unsigned short address) {
   int8_t result8b = A + data + getFlag(CARRY);
   auto aSigned = static_cast<int8_t>(A);
   auto dataSigned = static_cast<int8_t>(data);
-  bool overFlowBit =
-      (aSigned > 0 && dataSigned > 0 && result8b < 0) ||
-      (aSigned < 0 && dataSigned < 0 && result8b > 0);
+  bool overFlowBit = (aSigned > 0 && dataSigned > 0 && result8b < 0) ||
+                     (aSigned < 0 && dataSigned < 0 && result8b > 0);
   A = static_cast<uint8_t>(result8b);
   SPDLOG_INFO("A is now: {0:d}", A);
   checkValueFlags(A);
@@ -462,9 +465,8 @@ void CPU::SBC(unsigned short address) {
   int8_t result8b = A - data - !getFlag(CARRY);
   auto aSigned = static_cast<int8_t>(A);
   auto dataSigned = static_cast<int8_t>(data);
-  bool overFlowBit =
-      (aSigned > 0 && dataSigned < 0 && result8b < 0) ||
-      (aSigned < 0 && dataSigned > 0 && result8b > 0);
+  bool overFlowBit = (aSigned > 0 && dataSigned < 0 && result8b < 0) ||
+                     (aSigned < 0 && dataSigned > 0 && result8b > 0);
   SPDLOG_INFO("{0:d}", data);
   // bool borrowBit = A > data ? 0;
   // Short won't show overflow
