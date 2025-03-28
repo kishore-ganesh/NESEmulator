@@ -1,18 +1,6 @@
 #include "cpu.h"
 using std::cout;
 using std::endl;
-CPU::CPU(Memory *memory) {
-  this->memory = memory;
-  PC = memory->readLittleEndian(0xFFFC);
-  P = 0x34;
-  A = 0;
-  X = 0;
-  Y = 0;
-  SP = 0xFF;
-  NMI.clearInterrupt(); // Make NMI a pointer
-  IRQ = true;
-  shouldCaptureInput = false;
-}
 
 void CPU::setTime(unsigned int delta) { cyclesLeft = (1.79 * 1000) * delta; }
 bool CPU::hasCPUCycles() { return cyclesLeft > 0; }

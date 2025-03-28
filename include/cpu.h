@@ -5,13 +5,13 @@
 
 class CPU {
 public:
-  uint8_t A, X, Y, P; // check check setting of stack pointer
-  uint8_t SP;
-  int cycles;
-  int cyclesLeft;
+  uint8_t A{0}, X{0}, Y{0}, P{0x34}; // check check setting of stack pointer
+  uint8_t SP{0xFF};
+  int cycles{0};
+  int cyclesLeft{0};
   Memory *memory;
-  bool shouldCaptureInput;
-  bool stopCaptureInput;
+  bool shouldCaptureInput{false};
+  bool stopCaptureInput{false};
   enum masks {
     CARRY = 0x01,
     ZERO = 0x02,
@@ -24,8 +24,11 @@ public:
 
   unsigned short PC;
   EdgeInterrupt NMI;
-  bool IRQ; // refactor
-  CPU(Memory *memory);
+  bool IRQ{true}; // refactor
+  CPU(Memory *memory): memory(memory) {
+    PC = memory->readLittleEndian(0xFFFC);
+    NMI.clearInterrupt();
+  };
   EdgeInterrupt *getNMIPointer();
   void setTime(unsigned int delta);
   bool hasCPUCycles();
